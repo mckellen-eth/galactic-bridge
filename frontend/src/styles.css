@@ -1,0 +1,226 @@
+:root{--bg:#0a0a0a;--bg2:#111111;--bg3:#1a1a1a;--border:rgba(255,255,255,.08);--accent:#e8ff00;--green:#00d97e;--red:#ff4444;--blue:#4da6ff;--text:#f0f0f0;--muted:#666666}html,body,#root{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:'Courier New',monospace;font-size:15px}*{box-sizing:border-box}a{color:var(--blue);text-decoration:none}.shell{min-height:100vh;display:flex;flex-direction:column;padding:0;position:relative}.card{width:100%;max-width:680px;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg2),var(--bg));padding:22px;position:relative}.stack{width:100%;max-width:680px;display:flex;flex-direction:column}.top,.row,.links{display:flex;gap:12px;align-items:center}.top{justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}.brand{font-weight:700;letter-spacing:.08em}.section{margin:12px 0}.label{color:var(--muted);margin-bottom:8px}.meta{color:var(--muted);margin-top:8px;margin-bottom:0}.line{margin:5px 0}.compact{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.input,.select{width:100%;border:1px solid var(--border);background:var(--bg3);color:var(--text);padding:14px;font:inherit}.row>.input,.row>.select{flex:1}
+.btn{width:100%;border:1px solid var(--border);background:var(--bg3);color:var(--text);padding:14px;font:inherit;cursor:pointer;margin-top:10px;transition:box-shadow .15s,border-color .15s}.btn:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.btn-primary{background:var(--accent);color:#111;font-weight:700;border-color:var(--accent)}.btn-primary:hover{box-shadow:0 0 0 2px var(--accent)}.btn-secondary{background:transparent}.wallet{min-width:150px;width:auto}.swap,.mini{width:auto;min-width:48px;border:1px solid var(--border);background:var(--bg3);color:var(--text);padding:14px;font:inherit;cursor:pointer;transition:box-shadow .15s,border-color .15s}.swap:hover,.mini:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.copy{background:none;border:none;color:var(--muted);cursor:pointer;font:inherit;font-size:13px;padding:0 4px;line-height:1}.copy:hover{color:var(--text)}.box{padding:14px;border:1px solid var(--border);background:#0f0f0f}.links{margin-top:10px;flex-wrap:wrap}.debug{margin-top:12px;padding:12px;border:1px solid rgba(255,200,0,.2);background:#0d0d00;font-size:12px;color:#aaa;word-break:break-all;white-space:pre-wrap}.debug summary{cursor:pointer;color:var(--muted);margin-bottom:8px}.toast{position:fixed;bottom:96px;right:24px;z-index:40;background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:10px 16px;font:inherit;font-size:13px;pointer-events:none}.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:18px;z-index:20}.modal{width:min(680px,100%);max-height:min(86vh,860px);overflow:auto;border:1px solid var(--border);background:linear-gradient(180deg,var(--bg2),var(--bg));padding:18px;box-shadow:0 20px 80px rgba(0,0,0,.45)}.modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.modal-title{font-weight:700;letter-spacing:.06em}.modal-close{width:auto;min-width:40px;padding:10px 12px;margin-top:0}.token-row{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}.token-row:last-child{border-bottom:none}.token-row .left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.token-row input[type='checkbox']{accent-color:var(--accent);width:18px;height:18px}.spinner{display:inline-block;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.small-muted{color:var(--muted);font-size:13px}
+w3m-modal,appkit-modal{align-items:flex-start!important;padding-top:12vh!important}
+
+/* Page layout: header top, main center, footer bottom */
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 26px;flex-wrap:wrap}
+.page-header .brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.06em;font-size:20px}
+.page-header .brand svg{width:30px;height:30px}
+.page-main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:11vh 18px 18px}
+
+/* Footer — full width, centered, bottom */
+.foot{border-top:1px solid var(--border);padding:16px 22px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.foot-links{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center}
+.foot-link{background:none;border:none;color:var(--text);font:inherit;font-size:13px;cursor:pointer;padding:2px 0;transition:color .15s}
+.foot-link:hover{color:var(--accent)}
+.foot-mark{color:var(--accent)}
+.foot-copy{color:var(--muted);font-size:12px;opacity:.7;text-align:center}
+.foot-modal-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.feedback-links{justify-content:center;gap:22px;margin-top:14px}
+.foot-key{color:var(--muted)}
+.foot-addr{color:var(--text);word-break:break-all;font-size:12px}
+.modal .section{color:var(--muted)}
+.modal .section p{color:var(--muted);line-height:1.6;margin:8px 0}
+.modal .section ol,.modal .section li{color:var(--muted)}
+
+/* Background layer — subtle orbital motif + radial glow (behind everything) */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:radial-gradient(55% 45% at 50% 42%, rgba(232,255,0,0.045), transparent 70%)}
+.bg-orbits{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(1200px,130vw);height:min(1200px,130vh);opacity:0.06}
+.page-main,.foot{position:relative;z-index:1}
+.page-header{position:sticky;top:0;z-index:10}
+
+/* Header right cluster + theme switcher */
+.header-right{display:flex;align-items:center;gap:10px}
+.header-right .btn{margin-top:0}
+.row .btn{margin-top:0}
+.theme-switch{position:relative}
+.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);font:inherit;font-size:16px;cursor:pointer;padding:14px;line-height:1;display:flex;align-items:center;justify-content:center;transition:border-color .15s}
+.icon-btn:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.dropdown-backdrop{position:fixed;inset:0;z-index:29}
+.theme-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--bg2);border:1px solid var(--border);min-width:130px;z-index:30;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.theme-opt{display:block;width:100%;text-align:left;background:none;border:none;color:var(--muted);font:inherit;font-size:13px;padding:9px 12px;cursor:pointer}
+.theme-opt:hover{background:var(--bg3);color:var(--text)}
+.theme-opt.active{color:var(--accent)}
+/* Starfield background */
+.bg-stars{background:radial-gradient(26% 20% at 20% 30%, rgba(232,255,0,0.06), transparent 70%),radial-gradient(22% 18% at 82% 60%, rgba(232,255,0,0.045), transparent 72%),radial-gradient(30% 24% at 50% 16%, rgba(255,210,120,0.028), transparent 74%),radial-gradient(20% 16% at 70% 82%, rgba(232,255,0,0.03), transparent 72%),radial-gradient(45% 40% at 50% 45%, rgba(232,255,0,0.012), transparent 78%)}
+
+/* Galaxy beta themes background */
+.bg-galaxy{background:radial-gradient(50% 45% at 50% 45%, rgba(232,255,0,0.02), transparent 78%)}
+.bg-galaxy-svg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(1300px,135vw);height:min(1300px,135vh)}
+
+/* Clouds beta — м'які світні хмари в кутах/боках, приглушено */
+.bg-clouds{background:radial-gradient(28% 30% at 16% 32%, rgba(232,255,0,0.06), transparent 70%),radial-gradient(26% 28% at 84% 64%, rgba(232,255,0,0.05), transparent 72%),radial-gradient(24% 26% at 12% 78%, rgba(255,210,120,0.03), transparent 72%),radial-gradient(26% 28% at 88% 22%, rgba(232,255,0,0.035), transparent 72%)}
+
+/* ---- Спільні keyframes обертання орбіт/точок (Galactic ✦) ---- */
+@keyframes gb-spin-a{from{transform:rotate(18deg)}to{transform:rotate(378deg)}}
+@keyframes gb-spin-c{from{transform:rotate(-32deg)}to{transform:rotate(-392deg)}}
+@keyframes gb-spin-d{from{transform:rotate(65deg)}to{transform:rotate(425deg)}}
+@keyframes gb-rot-cw{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes gb-rot-ccw{from{transform:rotate(0)}to{transform:rotate(-360deg)}}
+
+/* Starfield ✦ — повільний дрейф хмар + мерехтіння зірок (окремий шар) */
+/* Туманність — 3 напівпрозорі шари, різні швидкості дрейф/масштаб/оберт → форма морфиться */
+.neb{position:absolute;inset:-18%;pointer-events:none;transform-origin:center}
+.neb1{background:radial-gradient(30% 32% at 22% 30%, rgba(232,255,0,.06), transparent 70%),radial-gradient(26% 28% at 78% 66%, rgba(232,255,0,.05), transparent 72%);animation:gb-neb1 70s ease-in-out infinite}
+.neb2{background:radial-gradient(28% 30% at 68% 24%, rgba(232,255,0,.035), transparent 72%),radial-gradient(24% 26% at 30% 74%, rgba(255,210,120,.03), transparent 72%);animation:gb-neb2 92s ease-in-out infinite}
+.neb3{background:radial-gradient(46% 42% at 50% 48%, rgba(232,255,0,.02), transparent 78%);animation:gb-neb3 116s ease-in-out infinite}
+@keyframes gb-neb1{0%{transform:translate(0,0) scale(1) rotate(0)}50%{transform:translate(2.6%,-2%) scale(1.1) rotate(8deg)}100%{transform:translate(0,0) scale(1) rotate(0)}}
+@keyframes gb-neb2{0%{transform:translate(0,0) scale(1.05) rotate(0)}50%{transform:translate(-2.2%,2.4%) scale(1) rotate(-7deg)}100%{transform:translate(0,0) scale(1.05) rotate(0)}}
+@keyframes gb-neb3{0%{transform:translate(0,0) scale(1) rotate(0)}50%{transform:translate(1.6%,1.4%) scale(1.12) rotate(5deg)}100%{transform:translate(0,0) scale(1) rotate(0)}}
+.bg-stars-anim .tw-stars circle{animation-name:gb-twinkle;animation-timing-function:ease-in-out;animation-iteration-count:infinite}
+@keyframes gb-twinkle{0%,100%{opacity:0.12}50%{opacity:0.7}}
+
+@media (prefers-reduced-motion:reduce){
+  .neb,.bg-stars-anim .tw-stars circle{animation:none}
+}
+
+/* ---- Galactic ✦✦ (v2): замідлено + пульс точок + дихання нахилу + пульс ядра ---- */
+.bg-orbits-anim2{opacity:0.1}
+.bg-orbits-anim2 .orbit-a,.bg-orbits-anim2 .orbit-c,.bg-orbits-anim2 .orbit-d,
+.bg-orbits-anim2 .dots-a,.bg-orbits-anim2 .dots-b,.bg-orbits-anim2 .dots-c,
+.bg-orbits-anim2 .tilt-a,.bg-orbits-anim2 .tilt-c,.bg-orbits-anim2 .tilt-d{transform-box:view-box;transform-origin:450px 450px}
+.bg-orbits-anim2 .orbit-a{transform:rotate(18deg);animation:gb-spin-a 120s linear infinite}
+.bg-orbits-anim2 .orbit-c{transform:rotate(-32deg);animation:gb-spin-c 160s linear infinite}
+.bg-orbits-anim2 .orbit-d{transform:rotate(65deg);animation:gb-spin-d 100s linear infinite}
+.bg-orbits-anim2 .dots-a{animation:gb-rot-cw 110s linear infinite}
+.bg-orbits-anim2 .dots-b{animation:gb-rot-ccw 150s linear infinite}
+.bg-orbits-anim2 .dots-c{animation:gb-rot-cw 85s linear infinite}
+.bg-orbits-anim2 .tilt-a{animation:gb-tilt 14s ease-in-out infinite}
+.bg-orbits-anim2 .tilt-c{animation:gb-tilt 18s ease-in-out infinite}
+.bg-orbits-anim2 .tilt-d{animation:gb-tilt 11s ease-in-out infinite}
+.bg-orbits-anim2 .tw{animation:gb-dot-tw 5s ease-in-out infinite}
+.bg-orbits-anim2 .dots-a .tw:nth-child(2){animation-delay:1.2s}
+.bg-orbits-anim2 .dots-a .tw:nth-child(3){animation-delay:2.4s}
+.bg-orbits-anim2 .dots-b .tw:nth-child(1){animation-delay:.5s}
+.bg-orbits-anim2 .dots-b .tw:nth-child(2){animation-delay:1.8s}
+.bg-orbits-anim2 .dots-b .tw:nth-child(3){animation-delay:3s}
+.bg-orbits-anim2 .dots-c .tw:nth-child(2){animation-delay:1.5s}
+@keyframes gb-tilt{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.9)}}
+@keyframes gb-dot-tw{0%,100%{opacity:.4}50%{opacity:.9}}
+
+/* ---- Starfield ✦: метеори (рідкі пролітаючі зорі) + nova-спалахи ---- */
+/* Метеор = контейнер що падає через увесь екран (ЗА камінням, z-index:1). Голова горить, хвіст-полум'я живе. */
+.gb-meteor{position:absolute;top:0;left:0;opacity:0;pointer-events:none;z-index:1}
+/* Зовнішній хвіст — м'яке полум'я (тепле→accent), розмите, тягнеться+flicker */
+.gb-meteor .tail{position:absolute;top:-1.5px;left:0;width:250px;height:5px;border-radius:3px;transform-origin:right center;
+  background:linear-gradient(90deg, rgba(255,120,20,0) 0%, rgba(255,150,30,.35) 55%, rgba(232,255,0,.7) 88%, rgba(255,240,170,.9) 100%);
+  filter:blur(1.4px)}
+/* Внутрішній хвіст — яскраве розжарене ядро сліду */
+.gb-meteor .tail2{position:absolute;top:0;left:60px;width:190px;height:2px;border-radius:2px;transform-origin:right center;
+  background:linear-gradient(90deg, rgba(232,255,0,0) 0%, rgba(232,255,0,.85) 80%, rgba(255,255,220,1) 100%);
+  filter:drop-shadow(0 0 3px rgba(232,255,0,.6))}
+/* Голова — розжарена крапка що горить */
+.gb-meteor .head{position:absolute;top:-3px;left:244px;width:8px;height:8px;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,235,1) 0%, rgba(245,255,150,1) 40%, rgba(255,150,30,.9) 75%, rgba(255,90,10,0) 100%);
+  filter:drop-shadow(0 0 6px rgba(255,220,80,.95)) drop-shadow(0 0 12px rgba(255,140,20,.55))}
+/* Падіння запускає JS-планувальник: елемент монтується з класом .play → летить ОДИН раз.
+   Паузи між падіннями керує JS (8-15с, рідко 3-6с), тож вони НЕ накладаються. */
+.gb-meteor.play.m1{--fdur:3.6s;animation:gb-mo1 3.6s linear 1 both}
+.gb-meteor.play.m2{--fdur:4s;animation:gb-mo2 4s linear 1 both}
+.gb-meteor.play.m3{--fdur:3.8s;animation:gb-mo3 3.8s linear 1 both}
+.gb-meteor.play .tail{animation:gb-mtail var(--fdur) linear 1 both, gb-flick .19s steps(2,end) infinite}
+.gb-meteor.play .tail2{animation:gb-mtail2 var(--fdur) linear 1 both, gb-flick2 .13s steps(2,end) infinite}
+.gb-meteor.play .head{animation:gb-head .17s steps(2,end) infinite}
+/* Хвости міняють довжину під час падіння (не статичні): ростуть, коливаються, спадають */
+@keyframes gb-mtail{0%{transform:scaleX(.15)}18%{transform:scaleX(.6)}35%{transform:scaleX(1)}60%{transform:scaleX(.9)}78%{transform:scaleX(1.05)}100%{transform:scaleX(.5)}}
+@keyframes gb-mtail2{0%{transform:scaleX(.1)}20%{transform:scaleX(.65)}38%{transform:scaleX(.95)}62%{transform:scaleX(1.05)}82%{transform:scaleX(.85)}100%{transform:scaleX(.4)}}
+@keyframes gb-flick{0%{opacity:.5}50%{opacity:.9}100%{opacity:.6}}
+@keyframes gb-flick2{0%{opacity:.7}50%{opacity:1}100%{opacity:.78}}
+@keyframes gb-head{0%{transform:scale(.9);opacity:.85}50%{transform:scale(1.18);opacity:1}100%{transform:scale(.96);opacity:.9}}
+@keyframes gb-mo1{0%{opacity:0;transform:translate(-14vw,-12vh) rotate(34deg)}7%{opacity:1}88%{opacity:1;transform:translate(116vw,92vh) rotate(34deg)}100%{opacity:0;transform:translate(126vw,102vh) rotate(34deg)}}
+@keyframes gb-mo2{0%{opacity:0;transform:translate(112vw,-12vh) rotate(146deg)}7%{opacity:1}88%{opacity:1;transform:translate(-22vw,92vh) rotate(146deg)}100%{opacity:0;transform:translate(-32vw,102vh) rotate(146deg)}}
+@keyframes gb-mo3{0%{opacity:0;transform:translate(-18vw,18vh) rotate(22deg)}7%{opacity:1}88%{opacity:1;transform:translate(116vw,64vh) rotate(22deg)}100%{opacity:0;transform:translate(126vw,70vh) rotate(22deg)}}
+
+/* Малі далекі падаючі зорі — тонка лінія, довгий хвіст що розчиняється; без вогню, швидше, холодні тони (мікс) */
+.gb-star{position:absolute;top:0;left:0;opacity:0;pointer-events:none}
+.gb-star .strail{position:absolute;top:0;left:0;width:150px;height:1.5px;border-radius:1px;transform-origin:right center;
+  background:linear-gradient(90deg, rgba(255,255,255,0) 0%, var(--c) 100%)}
+.gb-star .shead{position:absolute;top:-1px;left:146px;width:3px;height:3px;border-radius:50%;background:var(--c);filter:drop-shadow(0 0 3px var(--c))}
+.s1{--c:rgba(120,170,255,.75)}
+.s2{--c:rgba(185,140,255,.7)}
+.s3{--c:rgba(140,255,205,.7)}
+.s4{--c:rgba(130,215,255,.72)}
+.s5{--c:rgba(165,150,255,.7)}
+.gb-star.play.s1{--fdur:2.1s;animation:gb-so1 2.1s linear 1 both}
+.gb-star.play.s2{--fdur:2.3s;animation:gb-so2 2.3s linear 1 both}
+.gb-star.play.s3{--fdur:2s;animation:gb-so3 2s linear 1 both}
+.gb-star.play.s4{--fdur:2.2s;animation:gb-so4 2.2s linear 1 both}
+.gb-star.play.s5{--fdur:2.4s;animation:gb-so5 2.4s linear 1 both}
+.gb-star.play .strail{animation:gb-stail var(--fdur) linear 1 both}
+/* хвіст росте, тримається, потім розчиняється в кінці */
+@keyframes gb-stail{0%{transform:scaleX(.2);opacity:0}12%{transform:scaleX(.7);opacity:.9}30%{transform:scaleX(1);opacity:.9}75%{transform:scaleX(1);opacity:.7}100%{transform:scaleX(.5);opacity:0}}
+@keyframes gb-so1{0%{opacity:0;transform:translate(-12vw,-8vh) rotate(22deg)}8%{opacity:.85}85%{opacity:.85;transform:translate(112vw,74vh) rotate(22deg)}100%{opacity:0;transform:translate(122vw,82vh) rotate(22deg)}}
+@keyframes gb-so2{0%{opacity:0;transform:translate(110vw,-8vh) rotate(160deg)}8%{opacity:.85}85%{opacity:.85;transform:translate(-20vw,72vh) rotate(160deg)}100%{opacity:0;transform:translate(-30vw,80vh) rotate(160deg)}}
+@keyframes gb-so3{0%{opacity:0;transform:translate(-16vw,10vh) rotate(12deg)}8%{opacity:.85}85%{opacity:.85;transform:translate(114vw,58vh) rotate(12deg)}100%{opacity:0;transform:translate(124vw,64vh) rotate(12deg)}}
+@keyframes gb-so4{0%{opacity:0;transform:translate(-12vw,40vh) rotate(10deg)}8%{opacity:.85}85%{opacity:.85;transform:translate(116vw,80vh) rotate(10deg)}100%{opacity:0;transform:translate(126vw,86vh) rotate(10deg)}}
+@keyframes gb-so5{0%{opacity:0;transform:translate(112vw,8vh) rotate(166deg)}8%{opacity:.85}85%{opacity:.85;transform:translate(-22vw,66vh) rotate(166deg)}100%{opacity:0;transform:translate(-32vw,72vh) rotate(166deg)}}
+
+/* Метеоритні камені — ПЕРЕДНІЙ план (z-index:2, над метеорами), повільний дрейф+обертання */
+.gb-rock{position:absolute;pointer-events:none;z-index:2}
+.gb-rock svg{width:100%;height:100%;display:block;overflow:visible}
+.r1{width:60px;height:60px;left:6%;top:36%;animation:gb-float1 92s ease-in-out infinite}
+.r2{width:46px;height:46px;left:85%;top:58%;animation:gb-float2 122s ease-in-out infinite}
+.r3{width:40px;height:40px;left:64%;top:16%;animation:gb-float3 108s ease-in-out infinite}
+/* Дрейф по екрану + дихання масштабу (наближається/віддаляється) — глибина */
+/* Велика траєкторія + сильна глибина (scale): наближається до глядача і відлітає вдаль */
+@keyframes gb-float1{0%{transform:translate(0,0) scale(.9) rotate(0)}50%{transform:translate(9vw,-7vh) scale(1.5) rotate(16deg)}100%{transform:translate(0,0) scale(.9) rotate(0)}}
+@keyframes gb-float2{0%{transform:translate(0,0) scale(.4) rotate(0)}50%{transform:translate(-20vw,9vh) scale(1.2) rotate(-18deg)}100%{transform:translate(0,0) scale(.4) rotate(0)}}
+@keyframes gb-float3{0%{transform:translate(0,0) scale(.38) rotate(0)}50%{transform:translate(14vw,11vh) scale(1.1) rotate(22deg)}100%{transform:translate(0,0) scale(.38) rotate(0)}}
+.bg-stars-anim .nova-stars circle{animation:gb-nova 12s ease-in-out infinite}
+@keyframes gb-nova{0%,80%,100%{opacity:.12}88%{opacity:.95}94%{opacity:.3}}
+
+@media (prefers-reduced-motion:reduce){
+  .bg-orbits-anim2 .orbit-a,.bg-orbits-anim2 .orbit-c,.bg-orbits-anim2 .orbit-d,
+  .bg-orbits-anim2 .dots-a,.bg-orbits-anim2 .dots-b,.bg-orbits-anim2 .dots-c,
+  .bg-orbits-anim2 .tilt-a,.bg-orbits-anim2 .tilt-c,.bg-orbits-anim2 .tilt-d,
+  .bg-orbits-anim2 .tw,
+  .bg-stars-anim .nova-stars circle,.gb-rock{animation:none}
+  .gb-meteor,.gb-star{display:none;animation:none}
+}
+
+/* ── Мобільна версія (≤640px): усі елементи видимі, меню теми в межах екрана ── */
+@media (max-width: 640px){
+  .shell{overflow-x:hidden}
+  .page-header{position:relative;background:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+  /* Варіант A: лого+назва по центру (більші), кнопки по центру нижче */
+  .page-header{flex-direction:column;align-items:center;text-align:center;gap:12px;padding:16px}
+  .page-header .brand{font-size:21px;gap:8px}
+  .page-header .brand svg{width:34px;height:34px}
+  .header-right{justify-content:center;gap:8px}
+  /* меню теми відкривається ВПРАВО (left:0), а не за лівий край екрана */
+  .theme-menu{right:auto;left:0;min-width:120px}
+  .page-main{padding:2vh 12px 14px}
+  .card{padding:18px}
+  .row{gap:8px}
+  .foot{padding:14px 14px}
+  .foot-links{gap:8px 14px;font-size:12px}
+  .foot-link{font-size:12px}
+  .foot-copy{font-size:11px}
+  .toast{left:12px;right:12px;bottom:100px;text-align:center}
+}
+
+/* Стабілізуємо висоту фону (lvh) — щоб не смикався при показі/сховуванні панелі браузера на мобільному */
+.bg-layer{height:100lvh;bottom:auto}
+
+/* TX STATUS — окремий компактний блок під карткою, ближче до кнопки BRIDGE */
+.tx-status{margin:8px 0 0;padding:12px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.select{appearance:none;-webkit-appearance:none;-moz-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23f0f0f0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+/* Кнопки USE / DEL у збережених токенах: менші за звичайні .mini, сірі за
+   замовчуванням; USE підсвічується акцентом, DEL — червоним. */
+.token-act{padding:9px 11px;min-width:auto;font-size:12px;color:var(--muted)}
+.token-act:hover{color:var(--text);border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.token-del:hover{color:var(--red);border-color:var(--red);box-shadow:0 0 0 1px var(--red)}
+.meta-row{display:flex;align-items:center;gap:12px}
+.meta-text{flex:1;min-width:0}
+.saved-wrap{width:48px;display:flex;justify-content:center;flex-shrink:0}
+.saved-badge{color:var(--muted)}
+.params-box{padding:12px 14px}
+.params-head{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;margin-bottom:0}
+.chev{color:var(--muted);transition:transform .15s;flex-shrink:0}
+.chev.open{transform:rotate(180deg)}
+.tx-label{color:var(--muted);font-size:11px;letter-spacing:.06em}
+.tx-sep{color:#333}
+.tx-msg{color:var(--text);font-size:13px;display:inline-flex;align-items:center;gap:8px}
+.tx-ic{flex-shrink:0}
+.tx-spin{animation:spin 1.1s linear infinite;transform-origin:center}
+.tx-link{color:var(--blue);font-size:12px}

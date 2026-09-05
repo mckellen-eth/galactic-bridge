@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+build/
+
+# Environment / secrets
+.env
+.env.local
+.env.production
+
+# Backup files
+*.backup
+*.bak
+*.bak*
+*.full
+*-bak
+*.ui-bak
+*.orig
+
+# Внутрішні документи — НЕ публікувати:
+# містять IP сервера, шляхи, порти SSH та ключі API.
+BRIDGE_CONTEXT.md
+BRIDGE_CONTEXT.md.full
+GALACTIC_BRIDGE_ІНСТРУКЦІЯ.md
+ПОКРАЩЕННЯ_ДЛЯ_АНОНСУ.md
+ЧЕКЛИСТ_запуск_сайту_і_безпека.md
+ЯК_ЗАЛИТИ_НА_GITHUB.md
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude / agent state
+.claude/
+
+# Logs
+*.log
+npm-debug.log*

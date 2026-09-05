@@ -10,6 +10,8 @@ figures out the rest: the OFT contract, the route, the fee, and the transaction.
 
 Live at **https://galacticbridge.app** — or run it locally with the steps below.
 
+📖 **Full documentation:** https://galactic-bridge.gitbook.io/galactic-bridge-docs/
+
 ---
 
 ## Why it exists
@@ -28,12 +30,14 @@ Galactic Bridge automates that process.
   used by tokens that are not OFTs themselves.
 - **Routes without history** — asks the contract directly which networks it is
   connected to, so a route works even if nobody has used it before.
-- **Builds the transaction itself** — it does not merely replay a previous
-  transfer. When the contract follows the LayerZero V2 OFT standard, the call is
-  assembled from scratch and the fee comes from a live `quoteSend()`. This
-  matters because popular tokens are usually bridged through routers and
-  aggregators, so a past transaction contains the router's call data, not the
-  token's.
+- **Builds the transaction when there is nothing to copy** — the call format is
+  normally learned from a real direct transaction of the contract, because many
+  OFTs use custom function selectors and the format is safer learned than
+  assumed. But popular tokens are usually bridged through routers and
+  aggregators, and such a transaction holds the router's call data, not the
+  token's. When no direct example exists, the call is assembled from the
+  LayerZero V2 standard interface instead. Either way the fee comes from a live
+  `quoteSend()`.
 - **Non-custodial** — the interface never holds funds or keys. You sign every
   transaction in your own wallet. No account, no personal data.
 - **Saved tokens** — store frequently used tokens and reuse them by ticker.
@@ -137,10 +141,18 @@ several tokens in one transaction cannot produce a false match.
 4. If nothing works, the user can enter the contract or a sample transaction hash
    manually.
 
-**3. Build the transaction.**
-The call format is decoded from a real transaction of the same contract — many
-OFTs use custom function selectors, so the format is learned rather than assumed.
-The fee comes from a live `quoteSend()` call for the actual destination.
+**3. Build the transaction.** In order:
+
+1. **Copy the format** from a real *direct* transaction of the same contract.
+   Router-mediated transactions are skipped deliberately — their call data
+   belongs to the router. Many OFTs use custom function selectors, so a learned
+   format is more reliable than an assumed one.
+2. **Assemble from the standard** when no direct example exists. A successful
+   `quoteSend()` call proves the contract implements the LayerZero V2 OFT
+   interface, so the call can be built from scratch.
+
+In both cases the fee comes from a live `quoteSend()` for the actual
+destination; the fee decoded from the example is only a fallback.
 
 **4. Discover networks.**
 When saving a token, the bridge walks every connected contract via `peers()` and

@@ -7,11 +7,17 @@
 
 <p align="center">
   <a href="https://galacticbridge.app"><b>galacticbridge.app</b></a>
+  ·
+  <a href="https://galactic-bridge.gitbook.io/galactic-bridge-docs/"><b>Documentation</b></a>
 </p>
 
 ---
 
 ## Documentation
+
+**[Full documentation site →](https://galactic-bridge.gitbook.io/galactic-bridge-docs/)**
+
+In this repository:
 
 | | |
 |---|---|

@@ -14,6 +14,8 @@ w3m-modal,appkit-modal{align-items:flex-start!important;padding-top:12vh!importa
 .foot-link{background:none;border:none;color:var(--text);font:inherit;font-size:13px;cursor:pointer;padding:2px 0;transition:color .15s}
 .foot-link:hover{color:var(--accent)}
 .foot-mark{color:var(--accent)}
+/* Documentation — посилання назовні; вирівнюємо як кнопки, знімаємо підкреслення */
+.foot-doc{text-decoration:none;display:inline-flex;align-items:center;gap:4px;line-height:inherit}
 .foot-copy{color:var(--muted);font-size:12px;opacity:.7;text-align:center}
 .foot-modal-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
 .feedback-links{justify-content:center;gap:22px;margin-top:14px}

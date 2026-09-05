@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 const DONATE_EVM = '0x084a4bbd53d11a486f643201b448250839e0e000';
 const TG_DEV = 'https://t.me/mckellen_eth';
 const X_DEV = 'https://x.com/mckellen_eth';
+const DOCS_URL = 'https://galactic-bridge.gitbook.io/galactic-bridge-docs/';
 
 // Рік у копірайті — авто: до кінця 2026 показує "2026", далі діапазон "2026–поточний рік".
 const YEAR_START = 2026;
@@ -12,7 +13,9 @@ const yearLabel = (() => {
 })();
 
 // Розділи футера — назви в одному стилі (білий текст + жовтий маркер ▸).
+// Documentation — єдиний пункт-посилання (відкриває GitBook), решта відкривають модалку.
 const SECTIONS = ['Why this bridge', 'How it works', 'Feedback', 'Donate', 'Disclaimer'];
+const DOCS_AFTER = 'How it works'; // після якого пункту вставляємо посилання на доки
 
 export default function Footer() {
   const [open, setOpen] = useState(null); // назва активного розділу або null
@@ -33,9 +36,16 @@ export default function Footer() {
       <footer className="foot">
         <div className="foot-links">
           {SECTIONS.map((name) => (
-            <button key={name} type="button" className="foot-link" onClick={() => setOpen(name)}>
-              <span className="foot-mark">▸</span> {name}
-            </button>
+            <React.Fragment key={name}>
+              <button type="button" className="foot-link" onClick={() => setOpen(name)}>
+                <span className="foot-mark">▸</span> {name}
+              </button>
+              {name === DOCS_AFTER && (
+                <a className="foot-link foot-doc" href={DOCS_URL} target="_blank" rel="noreferrer">
+                  <span className="foot-mark">▸</span> Documentation
+                </a>
+              )}
+            </React.Fragment>
           ))}
         </div>
         <div className="foot-copy">© {yearLabel} Galactic Bridge · Powered by LayerZero</div>
@@ -52,7 +62,7 @@ export default function Footer() {
             {open === 'Why this bridge' && (
               <div className="section">
                 <p>
-                  Galactic Bridge is a universal cross-chain bridge for LayerZero OFT (Omnichain Fungible Token) tokens.
+                  Galactic Bridge is a universal cross-chain bridge for LayerZero V2 OFT (Omnichain Fungible Token) tokens.
                   Bridge any OFT token between Ethereum, Base, BNB Chain and other supported EVM networks —
                   including tokens that are not listed on Stargate.
                 </p>
@@ -62,9 +72,10 @@ export default function Footer() {
                   parameters by hand. It is slow, easy to get wrong, and can make you miss a time-sensitive arbitrage
                   opportunity. Galactic Bridge automates all of it. It finds the OFT contract — including the separate
                   bridge adapter used by tokens that are not OFTs themselves — asks the contract directly which networks
-                  it is connected to, and builds a ready-to-sign transaction in seconds. Routes work even if nobody has
-                  used them before. Just enter a token contract address, or a ticker if the token was previously saved,
-                  and bridge.
+                  it is connected to, and builds a ready-to-sign transaction in seconds. It copies the call format from
+                  a real transaction where one exists — many OFTs use custom function selectors — and builds it from the
+                  LayerZero V2 standard where none does. Routes work even if nobody has used them before. Just enter a
+                  token contract address, or a ticker if the token was previously saved, and bridge.
                 </p>
               </div>
             )}

@@ -27,6 +27,13 @@ w3m-modal,appkit-modal{align-items:flex-start!important;padding-top:12vh!importa
 
 /* Background layer — subtle orbital motif + radial glow (behind everything) */
 .bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:radial-gradient(55% 45% at 50% 42%, rgba(232,255,0,0.045), transparent 70%)}
+/* Nebula theme — deep-space canvas (drifting stars + rare meteors) over nebula glow */
+.bg-layer.bg-nebula{background:#05060a}
+.bg-nebula .neb-glow{position:absolute;inset:0;background:radial-gradient(50% 42% at 50% 46%, rgba(232,255,0,0.05), transparent 70%)}
+.bg-nebula .neb-blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.5;mix-blend-mode:screen}
+.bg-nebula .neb-blob.b1{width:46%;height:46%;left:-8%;top:-6%;background:radial-gradient(circle, rgba(70,60,140,0.5), transparent 70%)}
+.bg-nebula .neb-blob.b2{width:52%;height:52%;right:-10%;bottom:-12%;background:radial-gradient(circle, rgba(30,90,120,0.45), transparent 70%)}
+.bg-nebula .neb-canvas{position:absolute;inset:0;display:block}
 .bg-orbits{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(1200px,130vw);height:min(1200px,130vh);opacity:0.06}
 .page-main,.foot{position:relative;z-index:1}
 .page-header{position:sticky;top:0;z-index:10}

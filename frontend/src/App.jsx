@@ -164,6 +164,65 @@ function StarfieldAnimated() {
   );
 }
 
+// Nebula — canvas: дрейф зірок уліво (зациклено) + туманності + рідкий зорепад (як у промо).
+function NebulaAnimated() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const cv = ref.current, cx = cv.getContext('2d');
+    let W = 0, H = 0, raf = null, last = 0, mt = 0;
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    let stars = [], meteors = [], cooldown = 2500;
+    function resize() {
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      stars = []; const n = Math.round(W * H / 6000);
+      for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H,
+        r: Math.random() * 1.3 + 0.2, a: Math.random(), s: Math.random() * 0.02 + 0.004, d: Math.random() * 0.3 + 0.05 });
+    }
+    // пауза між польотами: переважно 10-20с, зрідка (20%) 5-7с
+    function randGap() { return (Math.random() < 0.2 ? (5 + Math.random() * 2) : (10 + Math.random() * 10)) * 1000; }
+    function spawnMeteor() {
+      // випадковий вхід по всій ширині зверху, інколи збоку; різний кут (вниз-ліво / вниз-право)
+      const speed = 3.4 + Math.random() * 2.2, e = Math.random();
+      let x, y, ang;
+      if (e < 0.75) { x = Math.random() * W; y = -30; ang = Math.PI / 2 + (Math.random() * 1.4 - 0.7); }
+      else if (e < 0.875) { x = -30; y = Math.random() * H * 0.5; ang = Math.PI / 2 - (0.35 + Math.random() * 0.5); }
+      else { x = W + 30; y = Math.random() * H * 0.5; ang = Math.PI / 2 + (0.35 + Math.random() * 0.5); }
+      meteors.push({ x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, len: 80 + Math.random() * 90 });
+    }
+    function draw(ts) {
+      const dt = ts - last; last = ts; cx.clearRect(0, 0, W, H);
+      for (let i = 0; i < stars.length; i++) { const st = stars[i]; st.a += st.s;
+        const tw = 0.45 + 0.55 * Math.abs(Math.sin(st.a)); cx.globalAlpha = tw * 0.9;
+        cx.fillStyle = i % 23 === 0 ? '#e8ff00' : '#dfe6ff';
+        cx.beginPath(); cx.arc(st.x, st.y, st.r, 0, 6.283); cx.fill();
+        st.x -= st.d * 0.15; if (st.x < 0) st.x = W; }
+      cx.globalAlpha = 1;
+      // зорепад — строго ПО ОДНОМУ за раз: наступний лише коли попередній зник + випадкова пауза
+      if (meteors.length === 0) { cooldown -= (dt || 16); if (cooldown <= 0) { spawnMeteor(); cooldown = randGap(); } }
+      for (let m = meteors.length - 1; m >= 0; m--) { const me = meteors[m]; me.x += me.vx; me.y += me.vy;
+        const g = cx.createLinearGradient(me.x, me.y, me.x - me.vx * me.len / 6, me.y - me.vy * me.len / 6);
+        g.addColorStop(0, 'rgba(255,255,255,.8)'); g.addColorStop(.3, 'rgba(232,255,0,.45)'); g.addColorStop(1, 'rgba(232,255,0,0)');
+        cx.strokeStyle = g; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(me.x, me.y);
+        cx.lineTo(me.x - me.vx * me.len / 6, me.y - me.vy * me.len / 6); cx.stroke();
+        if (me.y > H + 90 || me.y < -120 || me.x > W + 150 || me.x < -150) meteors.splice(m, 1); }
+      raf = requestAnimationFrame(draw);
+    }
+    resize(); last = performance.now(); raf = requestAnimationFrame(draw);
+    window.addEventListener('resize', resize);
+    return () => { if (raf) cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+  }, []);
+  return (
+    <div className="bg-layer bg-nebula" aria-hidden="true">
+      <div className="neb-glow" />
+      <div className="neb-blob b1" />
+      <div className="neb-blob b2" />
+      <canvas ref={ref} className="neb-canvas" />
+    </div>
+  );
+}
+
 // Зорі, зміщені до країв (не в центрі де картка, не в зоні футера).
 const EDGE_STARS = [
   [6, 12, 1.5], [14, 26, 1], [4, 44, 1.2], [11, 60, 1.6], [20, 14, 0.9], [8, 76, 1],
@@ -185,6 +244,7 @@ const THEMES = [
   { id: 'minimal', label: 'Minimal' },
   { id: 'galactic', label: 'Galactic' },
   { id: 'starfield', label: 'Starfield' },
+  { id: 'nebula', label: 'Nebula' },
 ];
 function ThemeSwitcher({ theme, setTheme }) {
   const [open, setOpen] = useState(false);
@@ -294,7 +354,7 @@ export default function App() {
   const [bridging, setBridging] = useState(false);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('gb-theme');
-    return ['minimal', 'galactic', 'starfield'].includes(saved) ? saved : 'minimal';
+    return ['minimal', 'galactic', 'starfield', 'nebula'].includes(saved) ? saved : 'minimal';
   });
   useEffect(() => { localStorage.setItem('gb-theme', theme); }, [theme]);
 
@@ -485,6 +545,7 @@ export default function App() {
     <div className={`shell theme-${theme}`}>
       {theme === 'galactic' && <BackgroundOrbitsAnimated2 />}
       {theme === 'starfield' && <StarfieldAnimated />}
+      {theme === 'nebula' && <NebulaAnimated />}
       <header className="page-header">
         <div className="brand"><Logo /> <span>Galactic Bridge</span></div>
         <div className="header-right">

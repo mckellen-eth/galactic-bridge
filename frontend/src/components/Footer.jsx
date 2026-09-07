@@ -69,13 +69,11 @@ export default function Footer() {
                 <p>
                   Many projects never add their token to Stargate. When that happens, moving the token between networks
                   has to be done manually: locating the OFT contract on a block explorer and entering dozens of transaction
-                  parameters by hand. It is slow, easy to get wrong, and can make you miss a time-sensitive arbitrage
-                  opportunity. Galactic Bridge automates all of it. It finds the OFT contract — including the separate
-                  bridge adapter used by tokens that are not OFTs themselves — asks the contract directly which networks
-                  it is connected to, and builds a ready-to-sign transaction in seconds. It copies the call format from
-                  a real transaction where one exists — many OFTs use custom function selectors — and builds it from the
-                  LayerZero V2 standard where none does. Routes work even if nobody has used them before. Just enter a
-                  token contract address, or a ticker if the token was previously saved, and bridge.
+                  parameters by hand. It is slow and easy to get wrong. Galactic Bridge automates all of it. It finds the
+                  OFT contract — including the separate bridge adapter used by tokens that are not OFTs themselves — asks
+                  the contract directly which networks it is connected to, and builds a ready-to-sign transaction in
+                  seconds. It copies the call format from a real transaction where one exists, or builds it from the
+                  LayerZero V2 standard where none does — so routes work even if nobody has used them before.
                 </p>
               </div>
             )}

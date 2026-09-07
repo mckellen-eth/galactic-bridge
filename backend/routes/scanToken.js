@@ -39,37 +39,53 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Missing token' });
     }
 
-    let preferredChain = req.query.fromChain && CHAINS[req.query.fromChain];
+    // Кандидати-мережі, звідки стартувати пошук: спершу fromChain (якщо валідна),
+    // далі всі мережі, де за адресою є контракт (auto-detect).
+    const candidates = [];
+    const seen = new Set();
+    const addCand = (c) => { if (c && !seen.has(c.key)) { seen.add(c.key); candidates.push(c); } };
 
-    if (preferredChain) {
-      const exists = await contractExists(preferredChain, token);
-      if (!exists) {
-        console.log(`[scan-token] contract not on ${preferredChain.key}, auto-detecting...`);
-        preferredChain = null;
-      }
+    const pref = req.query.fromChain && CHAINS[req.query.fromChain];
+    if (pref && await contractExists(pref, token)) addCand(pref);
+
+    const found = await detectChains(token);
+    console.log(`[scan-token] auto-detect found on chains: [${found.map(c => c.key).join(',')}]`);
+    found.forEach(addCand);
+
+    if (candidates.length === 0) {
+      return res.json({ ok: false, error: 'Contract not found on any supported chain', chains: {} });
     }
 
-    let sourceChain = preferredChain;
-    if (!sourceChain) {
-      const found = await detectChains(token);
-      console.log(`[scan-token] auto-detect found on chains: [${found.map(c => c.key).join(',')}]`);
-      if (found.length === 0) {
-        return res.json({
-          ok: false,
-          error: 'Contract not found on any supported chain',
-          chains: {},
-        });
-      }
-      sourceChain = found[0];
+    // Впорядкування: спершу мережі, де адреса схожа на справжній токен (має symbol) —
+    // так правильна мережа йде першою, а марний повний скан на мережі-колізії не робиться.
+    let ordered = candidates;
+    if (candidates.length > 1) {
+      const likeness = await Promise.all(candidates.map(async (c) => {
+        try { const m = await getTokenMeta(c, token); return !!(m && m.symbol); } catch { return false; }
+      }));
+      ordered = candidates
+        .map((c, i) => ({ c, ok: likeness[i] }))
+        .sort((a, b) => (b.ok ? 1 : 0) - (a.ok ? 1 : 0))
+        .map((x) => x.c);
+      console.log(`[scan-token] source order (token-like first): [${ordered.map(c => c.key).join(',')}]`);
     }
 
-    console.log('[scan-token] using sourceChain=', sourceChain.key);
+    // Пробуємо кожну мережу-джерело по черзі, доки не знайдуться маршрути.
+    // Адреса токена може мати контракт на кількох мережах (колізія адрес),
+    // тож не здаємось на першій невдачі, а доводимо пошук до кінця.
+    let result = null, usedChain = null;
+    for (const chain of ordered) {
+      console.log('[scan-token] trying sourceChain=', chain.key);
+      const r = await scanAllRoutes(chain, token);
+      if (r && Object.keys(r.chains || {}).length) { result = r; usedChain = chain; break; }
+      console.log(`[scan-token] no routes from ${chain.key}, trying next…`);
+    }
 
-    const result = await scanAllRoutes(sourceChain, token);
-    if (!result || !Object.keys(result.chains || {}).length) {
+    if (!result) {
+      const first = ordered[0];
       console.log('[scan-token] result chains=none');
-      const meta = await getTokenMeta(sourceChain, token);
-      return res.json({ ok: true, token, chains: {}, meta, detectedChain: sourceChain.key });
+      const meta = await getTokenMeta(first, token);
+      return res.json({ ok: true, token, chains: {}, meta, detectedChain: first.key });
     }
 
     console.log('[scan-token] result chains=', Object.keys(result.chains).join(','));
@@ -78,7 +94,7 @@ router.get('/', async (req, res) => {
       token,
       chains: result.chains,
       meta: result.meta,
-      detectedChain: sourceChain.key,
+      detectedChain: usedChain.key,
     });
   } catch (error) {
     console.log('[scan-token] error=', error.message);

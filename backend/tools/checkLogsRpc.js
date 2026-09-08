@@ -28,10 +28,11 @@ async function rpc(url, method, params) {
 
 // той самий порядок вибору вузла, що й у бекенді
 function logsUrls(chain) {
-  const envUrl = process.env[`LOGS_RPC_${chain.key.toUpperCase()}`];
+  const envUrls = String(process.env[`LOGS_RPC_${chain.key.toUpperCase()}`] || '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
   const list = Array.isArray(chain.logsRpc) ? [...chain.logsRpc] : (chain.logsRpc ? [chain.logsRpc] : []);
   if (!list.includes(chain.rpc)) list.push(chain.rpc);
-  return envUrl ? [envUrl, ...list.filter((u) => u !== envUrl)] : list;
+  return [...envUrls, ...list.filter((u) => !envUrls.includes(u))];
 }
 
 const short = (u) => (u.length > 46 ? u.slice(0, 43) + '...' : u);

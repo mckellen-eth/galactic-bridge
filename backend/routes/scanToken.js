@@ -73,10 +73,12 @@ router.get('/', async (req, res) => {
     // Пробуємо кожну мережу-джерело по черзі, доки не знайдуться маршрути.
     // Адреса токена може мати контракт на кількох мережах (колізія адрес),
     // тож не здаємось на першій невдачі, а доводимо пошук до кінця.
+    // ?refresh=1 — примусово оминути кеш (кнопка "оновити мережі")
+    const noCache = req.query.refresh === '1';
     let result = null, usedChain = null;
     for (const chain of ordered) {
       console.log('[scan-token] trying sourceChain=', chain.key);
-      const r = await scanAllRoutes(chain, token);
+      const r = await scanAllRoutes(chain, token, { noCache });
       if (r && Object.keys(r.chains || {}).length) { result = r; usedChain = chain; break; }
       console.log(`[scan-token] no routes from ${chain.key}, trying next…`);
     }

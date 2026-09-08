@@ -4,7 +4,7 @@ import { decodeLayout } from '../lib/decoder.js';
 import { layerZeroOAppUrl } from '../lib/explorer.js';
 import { getTransaction, rpcCall } from '../lib/rpc.js';
 import { encodeQuoteSend, decodeQuoteResult } from '../lib/decoder.js';
-import { findBridgeParams } from '../lib/oftSearch.js';
+import { findBridgeParams, getPeerStatus } from '../lib/oftSearch.js';
 
 const router = express.Router();
 
@@ -161,6 +161,9 @@ router.get('/', async (req, res) => {
   let oftContract = null;
   let deliveredMsgs = [];
   let source = null;
+  // Адаптер, знайдений під час пошуку, навіть якщо маршрут не склався.
+  // Потрібен, щоб перевірити peers() саме на ньому, а не на адресі токена.
+  let resolvedSrcOft = null;
 
   // STEP 1: ручний OFT (юзер ввів сам у RareRouteModal або CustomTokenModal)
   if (manualOft && manualOft !== tokenAddress) {
@@ -181,6 +184,7 @@ router.get('/', async (req, res) => {
     console.log(`[find-params] STEP 2: bridge lookup ${fromChain.key}->${toChain.key}${dstOft ? ` dstOft=${dstOft.slice(0,12)}` : ''}`);
     try {
       const exactBridge = await findBridgeParams(tokenAddress, fromChain, toChain, dstOft, manualOft);
+      if (exactBridge?.srcOft) resolvedSrcOft = exactBridge.srcOft;
       if (exactBridge?.ok) {
         oftContract = exactBridge.oftContract;
         source = exactBridge.foundVia || 'auto';
@@ -211,6 +215,63 @@ router.get('/', async (req, res) => {
       deliveredMsgs = delivered;
       source = 'token_is_oft';
     }
+  }
+
+  // ПЕРЕВІРКА, ЧИ НАПРЯМОК УВІМКНЕНИЙ ЗАРАЗ.
+  // Історія LayerZero доводить, що маршрут КОЛИСЬ працював, але не доводить,
+  // що він працює сьогодні: проєкт може вимкнути напрямок, знявши peer
+  // (типово після тестових транзакцій). Тоді quoteSend і send реверляться —
+  // і користувач дізнається про це аж у гаманці, вже підписуючи.
+  //
+  // Робиться ДО перевірки на "нічого не знайшли", інакше при порожньому
+  // oftContract людина отримає "введіть дані вручну" для напрямку, якого
+  // не існує.
+  //
+  // Блокуємо ЛИШЕ коли контракт прямо відповів "peer порожній". Якщо peers()
+  // не підтримується (нестандартний OFT) або вузол мовчить — стан 'unknown',
+  // і ми не заважаємо.
+  // Peer — ОДНОБІЧНИЙ. Те, що джерело знає призначення, не означає, що
+  // призначення знає джерело. І це різні за наслідками випадки:
+  //   • немає peer на ДЖЕРЕЛІ  → транзакція відхиляється одразу, кошти цілі;
+  //   • немає peer на ПРИЗНАЧЕННІ → транзакція на джерелі ПРОХОДИТЬ, токени
+  //     списуються, а доставка на тому боці відхиляється, і кошти висять
+  //     у дорозі, доки хтось не налаштує peer.
+  // Другий випадок небезпечніший, тому перевіряємо обидва боки.
+  // Порядок важливий: адреса ТОКЕНА — останній варіант. Якщо міст іде через
+  // окремий адаптер, у токена немає peers(), і перевірка мовчки не спрацює.
+  const peerProbe = oftContract || manualOft || resolvedSrcOft || tokenAddress;
+  const srcPeer = await getPeerStatus(fromChain, peerProbe, toChain.eid);
+
+  if (srcPeer.state === 'unset') {
+    console.log(`[find-params] напрямок вимкнено: peers(${toChain.eid}) порожній на ${peerProbe}`);
+    return res.json({
+      ok: false,
+      routeDisabled: true,
+      error: `${fromChain.name} → ${toChain.name} is currently disabled by the token's own contract. `
+           + `The contract on ${fromChain.name} has no peer configured for ${toChain.name}, `
+           + `so the transaction would be rejected on-chain. Try another destination network.`,
+    });
+  }
+
+  // Адресу контракту призначення беремо з відповіді peers() джерела — вона
+  // саме там і лежить. Тому перевірка другого боку працює і для НЕзбережених
+  // токенів, де dstOft з фронтенду не приходить. Жодного зайвого запиту.
+  const dstProbe = dstOft || srcPeer.peer;
+  const dstPeer = dstProbe
+    ? await getPeerStatus(toChain, dstProbe, fromChain.eid)
+    : { state: 'unknown' };
+
+  if (dstPeer.state === 'unset') {
+    console.log(`[find-params] НЕБЕЗПЕЧНО: peers(${fromChain.eid}) порожній на ${dstProbe} (${toChain.key}) — доставка не пройде`);
+    return res.json({
+      ok: false,
+      routeDisabled: true,
+      unsafeDelivery: true,
+      error: `${fromChain.name} → ${toChain.name} is not safe to use. The contract on ${toChain.name} `
+           + `has no peer configured for ${fromChain.name}: the transaction on ${fromChain.name} would `
+           + `succeed and your tokens would be sent, but delivery on ${toChain.name} would fail and the `
+           + `tokens could stay stuck in transit. Blocked to protect your funds. Try another network.`,
+    });
   }
 
   console.log(`[find-params] STEP 4: oftContract=${oftContract} msgs=${deliveredMsgs.length}`);

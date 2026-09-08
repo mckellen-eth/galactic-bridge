@@ -1,6 +1,7 @@
 import { CHAINS, getChainByEid } from './chains.js';
 import { LZ_ENDPOINT_V2, layerZeroTxUrl } from './explorer.js';
 import { chainRpcUrls } from './rpc.js';
+import { oftCache, routesCache } from './cache.js';
 
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const ZERO_TOPIC = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -251,13 +252,16 @@ const SCAN_PARALLEL = 3;
 // або взагалі не дають eth_getLogs ("limit exceeded"), або лише ~10k останніх
 // блоків ("Archive requests require a personal token"). Пробуємо діапазон на
 // глибині 60k блоків — так відсіюємо неархівні вузли одразу.
-// Кандидати вузлів для логів: спершу свій із .env (LOGS_RPC_<CHAIN>, напр.
+// Кандидати вузлів для логів: спершу свої з .env (LOGS_RPC_<CHAIN>, напр.
 // LOGS_RPC_BSC), потім список із chains.js, і завжди основний RPC мережі як запасний.
+// У LOGS_RPC_<CHAIN> можна вказати кілька вузлів через кому — вони пробуються
+// по черзі у вказаному порядку (перший = основний, решта = запасні).
 function logsCandidates(chain) {
-  const envUrl = process.env[`LOGS_RPC_${chain.key.toUpperCase()}`];
+  const envUrls = String(process.env[`LOGS_RPC_${chain.key.toUpperCase()}`] || '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
   const list = Array.isArray(chain.logsRpc) ? [...chain.logsRpc] : (chain.logsRpc ? [chain.logsRpc] : []);
   for (const u of chainRpcUrls(chain)) if (!list.includes(u)) list.push(u);
-  return envUrl ? [envUrl, ...list.filter((u) => u !== envUrl)] : list;
+  return [...envUrls, ...list.filter((u) => !envUrls.includes(u))];
 }
 
 // Усі вузли мережі для звичайних викликів (getCode, blockNumber, eth_call).
@@ -292,6 +296,11 @@ async function pickLogsUrl(chain, token, latest) {
   return urls[0];
 }
 
+// Ознака "вузол відмовив", а не "збігів немає". Раніше обидва випадки давали
+// null, тому пошук не міг відрізнити мертвий вузол від чесно порожнього
+// діапазону і тихо здавався. Тепер відмова видно нагору → можна перемкнути вузол.
+export const RPC_FAIL = Symbol('rpc-fail');
+
 async function scanChunkForOft(chain, token, from, to, logsUrl, depth = 0) {
   const hex = (n) => '0x' + n.toString(16);
 
@@ -301,10 +310,14 @@ async function scanChunkForOft(chain, token, from, to, logsUrl, depth = 0) {
 
   // RPC відмовив (завеликий діапазон/ліміт) → ділимо навпіл, новішу половину першою.
   if (transfers === null) {
-    if (depth >= 2 || to - from < 400) return null;
+    if (depth >= 2 || to - from < 400) return RPC_FAIL;
     const mid = Math.floor((from + to) / 2);
-    return (await scanChunkForOft(chain, token, mid + 1, to, logsUrl, depth + 1))
-        || (await scanChunkForOft(chain, token, from, mid, logsUrl, depth + 1));
+    const a = await scanChunkForOft(chain, token, mid + 1, to, logsUrl, depth + 1);
+    if (a && a !== RPC_FAIL) return a;
+    const b = await scanChunkForOft(chain, token, from, mid, logsUrl, depth + 1);
+    if (b && b !== RPC_FAIL) return b;
+    // жодної знахідки; якщо хоч одна половина впала — це відмова вузла
+    return (a === RPC_FAIL || b === RPC_FAIL) ? RPC_FAIL : null;
   }
   if (!Array.isArray(transfers) || transfers.length === 0) return null;
   const txs = new Set(transfers.map((l) => l.transactionHash));
@@ -375,8 +388,15 @@ async function findOftViaTransferAndLzScan(tokenAddress, chain) {
   const latest = parseInt(blockHex, 16);
   const chunk = SCAN_CHUNK[chain.key] || SCAN_CHUNK.default;
   const maxChunks = SCAN_MAX_CHUNKS_BY_CHAIN[chain.key] || SCAN_MAX_CHUNKS_BY_CHAIN.default;
-  const logsUrl = await pickLogsUrl(chain, token, latest);
+  let logsUrl = await pickLogsUrl(chain, token, latest);
   log(`findOFT: ${chain.key} scanning up to ${maxChunks * chunk} blocks newest-first (chunk=${chunk})`);
+
+  // Вузол може пройти коротку пробу, але здохнути на реальному навантаженні
+  // (сотні запитів по 10k блоків підряд → 429 або відмова на діапазоні).
+  // Тому рахуємо повністю провалені батчі й перемикаємось на наступний вузол,
+  // продовжуючи з того самого місця.
+  const triedUrls = new Set([logsUrl]);
+  let failStreak = 0;
 
   // Паралельні батчі, від найновіших блоків; рання зупинка при першій знахідці.
   for (let i = 0; i < maxChunks; i += SCAN_PARALLEL) {
@@ -388,10 +408,31 @@ async function findOftViaTransferAndLzScan(tokenAddress, chain) {
       batch.push(scanChunkForOft(chain, token, from, to, logsUrl));
     }
     if (batch.length === 0) break;
-    const hit = (await Promise.all(batch)).find((r) => r?.oft);
+    const results = await Promise.all(batch);
+    const hit = results.find((r) => r && r !== RPC_FAIL && r.oft);
     if (hit) {
       log(`findOFT: OFT=${hit.oft} via LZ-event match tx=${(hit.proofTx || '').slice(0, 12)}`);
       return hit;
+    }
+
+    // Батч провалився ЦІЛКОМ → підозра на мертвий вузол. Один батч може впасти
+    // випадково, тому реагуємо лише на два поспіль.
+    if (results.every((r) => r === RPC_FAIL)) {
+      if (++failStreak >= 2) {
+        const next = logsCandidates(chain).find((u) => !triedUrls.has(u));
+        if (!next) {
+          log(`findOFT: ${chain.key} — усі вузли відмовляють, скан припинено`);
+          break;
+        }
+        log(`findOFT: ${chain.key} node failing → switching to ${next}`);
+        triedUrls.add(next);
+        logsUrl = next;
+        pickedLogsUrl.set(chain.key, next); // щоб наступні пошуки не брали мертвий
+        failStreak = 0;
+        i -= SCAN_PARALLEL; // повторити цей самий діапазон на новому вузлі
+      }
+    } else {
+      failStreak = 0;
     }
   }
 
@@ -432,11 +473,23 @@ export async function resolveOft(tokenAddress, chain) {
   const token = lower(tokenAddress);
   log(`resolveOft chain=${chain.key} token=${token}`);
 
+  // Кеш: адаптер для токена не змінюється, а його пошук — найдорожча операція
+  // (сотні запитів eth_getLogs). Кешуємо ЛИШЕ успіх: якщо не знайшли через
+  // тимчасовий збій вузла, повторна спроба має бути справжньою.
+  const cacheKey = `${chain.key}:${token}`;
+  const cached = oftCache.get(cacheKey);
+  if (cached) {
+    log(`resolveOft: cache hit ${chain.key} → ${cached.oft}`);
+    return cached;
+  }
+
   // KROK 1: precheck — чи token сам є OFT?
   const pre = await lzScanOapp1(chain.eid, token);
   if (pre.ok && pre.msgs.length > 0) {
     log(`resolveOft: token IS OFT on ${chain.key}`);
-    return { oft: token, tokenIsOft: true };
+    const res = { oft: token, tokenIsOft: true };
+    oftCache.set(cacheKey, res);
+    return res;
   }
   // API не відповів — це НЕ означає "не OFT". Перевіряємо ON-CHAIN:
   // якщо контракт має налаштованих peers(), він є LayerZero OApp.
@@ -444,7 +497,9 @@ export async function resolveOft(tokenAddress, chain) {
     const peers = await getOftPeers(chain, token);
     if (peers.length > 0) {
       log(`resolveOft: LZ API недоступний, але peers() підтверджує — token IS OFT on ${chain.key}`);
-      return { oft: token, tokenIsOft: true };
+      const res = { oft: token, tokenIsOft: true };
+      oftCache.set(cacheKey, res);
+      return res;
     }
   }
 
@@ -452,7 +507,9 @@ export async function resolveOft(tokenAddress, chain) {
   const found = await findOftViaTransferAndLzScan(token, chain);
   if (found?.oft) {
     log(`resolveOft: found OFT via tx-scan on ${chain.key}: ${found.oft} (proofTx=${found.proofTx})`);
-    return { oft: found.oft, tokenIsOft: false };
+    const res = { oft: found.oft, tokenIsOft: false };
+    oftCache.set(cacheKey, res);
+    return res;
   }
 
   log(`resolveOft: NOT FOUND on ${chain.key}`);
@@ -566,6 +623,9 @@ export async function findBridgeParams(tokenAddress, fromChain, toChain, dstOft 
     return {
       ok: false,
       needsManualOft: true,  // завжди true — дозволяємо юзеру ввести txHash якщо dstOft не спрацював
+      srcOft,                // ВАЖЛИВО: віддаємо знайдений адаптер навіть при невдачі —
+                             // інакше find-params перевірятиме peers() на адресі токена,
+                             // у якого цієї функції немає, і не побачить вимкнений напрямок
       error: `No delivered msgs ${fromChain.key}->${toChain.key}`,
     };
   }
@@ -627,6 +687,20 @@ export async function getPeer(chain, oftAddress, eid) {
   return peer === ZERO_ADDR ? null : peer;
 }
 
+// Те саме, але з ТРЬОМА станами. Для попередження про вимкнений напрямок
+// критично відрізняти "peer порожній" (напрямок вимкнено проєктом) від
+// "не вдалося дізнатись" (вузол мовчить або контракт не має peers() взагалі).
+// getPeer() віддає null в обох випадках, тому для перевірки він не годиться.
+export async function getPeerStatus(chain, oftAddress, eid) {
+  const data = PEERS_SELECTOR + eid.toString(16).padStart(64, '0');
+  const r = await rpcOn(chain, 'eth_call', [{ to: oftAddress, data }, 'latest']);
+  if (!r.ok) return { state: 'unknown' };            // вузол не відповів / виклик впав
+  const res = r.result;
+  if (!res || res === '0x') return { state: 'unknown' }; // контракт без peers()
+  if (/^0x0+$/.test(res)) return { state: 'unset' };     // peer явно порожній
+  return { state: 'set', peer: '0x' + res.slice(-40).toLowerCase() };
+}
+
 export async function getOftPeers(chain, oftAddress) {
   const targets = Object.values(CHAINS).filter((c) => c?.eid && c.key !== chain.key);
   const CONC = 4; // 13 паралельних викликів публічний RPC ріже -> неповна карта
@@ -641,8 +715,21 @@ export async function getOftPeers(chain, oftAddress) {
   return found;
 }
 
-export async function scanAllRoutes(sourceChain, tokenAddress) {
+export async function scanAllRoutes(sourceChain, tokenAddress, { noCache = false } = {}) {
   log(`scanAllRoutes chain=${sourceChain.key} token=${tokenAddress}`);
+
+  // Кеш переліку мереж. Живе годину: перелік може змінитися, якщо проєкт
+  // підключить нову мережу. noCache=true — примусове оновлення (кнопка
+  // "оновити мережі" у збережених токенах).
+  const cacheKey = `${sourceChain.key}:${lower(tokenAddress)}`;
+  if (!noCache) {
+    const cached = routesCache.get(cacheKey);
+    if (cached) {
+      log(`scanAllRoutes: cache hit → ${Object.keys(cached.chains || {}).join(',')}`);
+      return cached;
+    }
+  }
+
   const resolved = await resolveOft(tokenAddress, sourceChain);
   if (!resolved) {
     log('scanAllRoutes: resolveOft returned null');
@@ -760,7 +847,10 @@ export async function scanAllRoutes(sourceChain, tokenAddress) {
   }
 
   log(`scanAllRoutes done: ${Object.keys(chains).length} chains found in ${hops} hops`);
-  return { chains, meta, srcOft: resolved.oft };
+  const result = { chains, meta, srcOft: resolved.oft };
+  // Кешуємо лише змістовний результат: порожній міг вийти через збій вузла.
+  if (Object.keys(chains).length > 1) routesCache.set(cacheKey, result);
+  return result;
 }
 
 export async function scanRoute(sourceChain, targetChain, tokenAddress) {

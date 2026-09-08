@@ -10,6 +10,7 @@ import verifyOft from './routes/verifyOft.js';
 import bridgeParamsManual from './routes/bridgeParamsManual.js';
 import { CHAINS } from './lib/chains.js';
 import { rpcCall } from './lib/rpc.js';
+import { cacheStats } from './lib/cache.js';
 
 dotenv.config({ path: '../.env' });
 const app = express();
@@ -57,13 +58,52 @@ setInterval(() => {
   for (const [ip, rec] of rlHits) if (now - rec.start > RL_WINDOW_MS) rlHits.delete(ip);
 }, 60000).unref();
 
+// ДОДАТКОВІ ліміти для ВАЖКИХ ендпоінтів. Загальний ліміт вище рахує всі
+// запити однаково, але їхня ціна дуже різна:
+//   • scan-token   — може запустити глибокий скан логів (~200 запитів до RPC)
+//   • find-params  — зазвичай дешевий (кеш + LayerZero API), але користувач
+//                    цілком законно перебирає багато напрямків підряд
+// Тому ліміти окремі: жорсткий на пошук токена, м'якший на перебір маршрутів.
+const RL_MINUTE = 60000;
+function makeLimiter(max, label) {
+  const hits = new Map();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, rec] of hits) if (now - rec.start > RL_MINUTE) hits.delete(ip);
+  }, RL_MINUTE).unref();
+
+  return function limiter(req, res, next) {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const rec = hits.get(ip);
+    if (!rec || now - rec.start > RL_MINUTE) {
+      hits.set(ip, { start: now, count: 1 });
+      return next();
+    }
+    rec.count += 1;
+    if (rec.count > max) {
+      console.log(`[rate-limit] ${label}: заблоковано ${ip} (${rec.count} за хвилину, ліміт ${max})`);
+      return res.status(429).json({
+        ok: false,
+        error: 'Too many requests. Please wait a minute and try again.',
+      });
+    }
+    next();
+  };
+}
+const scanTokenLimiter = makeLimiter(Number(process.env.RL_SCAN_MAX || 15), 'scan-token');
+const findParamsLimiter = makeLimiter(Number(process.env.RL_FIND_MAX || 50), 'find-params');
+
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
-app.use('/api/find-params', findParams);
+// Статистика кешу — щоб бачити, чи він реально працює (size/hits/misses).
+app.get('/api/cache-stats', (_, res) => res.json({ ok: true, caches: cacheStats() }));
+
+app.use('/api/find-params', findParamsLimiter, findParams);
 app.use('/api/balance', balance);
 app.use('/api/quote', quote);
 app.use('/api/tx-status', txStatus);
-app.use('/api/scan-token', scanToken);
+app.use('/api/scan-token', scanTokenLimiter, scanToken);
 app.use('/api/verify-oft', verifyOft);
 app.use('/api/bridge-params-manual', bridgeParamsManual);
 

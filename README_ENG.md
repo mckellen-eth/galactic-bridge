@@ -38,6 +38,10 @@ Galactic Bridge automates that process.
   token's. When no direct example exists, the call is assembled from the
   LayerZero V2 standard interface instead. Either way the fee comes from a live
   `quoteSend()`.
+- **Detects disabled directions** — a token existing on two networks does not
+  mean you can move it between them. Projects switch directions off by clearing
+  the `peer` setting on the contract. The bridge checks both sides before you
+  sign and tells you plainly, instead of letting the wallet fail on you.
 - **Non-custodial** — the interface never holds funds or keys. You sign every
   transaction in your own wallet. No account, no personal data.
 - **Saved tokens** — store frequently used tokens and reuse them by ticker.
@@ -89,8 +93,12 @@ Copy `.env.example` to `.env` and fill it in.
 | `VITE_CF_BEACON_TOKEN` | No | Cloudflare Web Analytics token, only if you host your own site. Leave empty and no analytics script is loaded at all. |
 | `PORT` | No | Backend port. Default `3001`. |
 | `ALLOWED_ORIGINS` | No | Comma-separated CORS allowlist. Empty = open (development). Set it in production. |
-| `RL_MAX`, `RL_WINDOW_MS` | No | Rate limit per IP. Default 60 requests / 15 s. |
-| `LOGS_RPC_<CHAIN>` | No | Archive RPC for a specific network, e.g. `LOGS_RPC_BSC`. See below. |
+| `RL_MAX`, `RL_WINDOW_MS` | No | General rate limit per IP. Default 60 requests / 15 s. |
+| `RL_SCAN_MAX` | No | Limit for `/api/scan-token` per IP per minute. Default 15. This endpoint can trigger a deep log scan (~200 RPC calls), so it is capped separately. |
+| `RL_FIND_MAX` | No | Limit for `/api/find-params` per IP per minute. Default 50. Usually cheap, and comparing many routes is normal use. |
+| `LOGS_RPC_<CHAIN>` | No | Archive RPC for a specific network, e.g. `LOGS_RPC_BSC`. Accepts several nodes separated by commas. See below. |
+| `RPC_<CHAIN>` | No | Forces a specific node for ordinary calls. Tried **first**. |
+| `RPC_FALLBACK_<CHAIN>` | No | Keyed node for ordinary calls, tried **last** — only when the public ones fail, so your quota is not spent needlessly. |
 
 > `frontend/.env` is generated from the `VITE_` lines of the root `.env`.
 > `start.bat` does this automatically; on macOS/Linux run the `grep` command above.
@@ -104,6 +112,14 @@ access:
 
 ```
 LOGS_RPC_BSC=https://bsc-mainnet.nodereal.io/v1/YOUR_KEY
+```
+
+You can list several nodes separated by commas — they are tried in order, and
+the bridge also switches to the next one **mid-scan** if the current node starts
+refusing requests:
+
+```
+LOGS_RPC_BSC=https://primary.example/KEY,https://backup.example/KEY
 ```
 
 Free tiers from [NodeReal](https://nodereal.io), [Ankr](https://www.ankr.com/rpc/),
@@ -158,6 +174,48 @@ destination; the fee decoded from the example is only a fallback.
 When saving a token, the bridge walks every connected contract via `peers()` and
 supplements the result with LayerZero history. Networks are not always connected
 in a star topology, so each node is queried, not only the starting one.
+
+Results are cached in memory — the OFT adapter for 24 hours (it does not change),
+the network list for one hour. A repeated search returns instantly instead of
+re-scanning. Fees and balances are **never** cached: they depend on gas prices
+and would go stale within minutes.
+
+**5. Check that the direction is actually open.**
+History proves a route *worked*, not that it *works*. Projects disable directions
+by clearing the `peer` setting on the contract — often after a single test
+transaction. `peers()` is one-directional, and the two failure modes differ:
+
+- **no peer on the source** — the transaction is rejected immediately, funds are
+  untouched;
+- **no peer on the destination** — the source transaction *succeeds*, tokens are
+  sent, and delivery fails on the other side, leaving them stuck in transit.
+
+The bridge checks both sides before showing you a fee, and blocks the route with
+an explanation rather than letting you sign a doomed transaction. It only blocks
+when a contract explicitly answers "no peer". If `peers()` is unsupported or the
+node is unreachable, nothing is blocked.
+
+---
+
+## Approvals: one transaction or two?
+
+This depends on whether the token is an OFT itself.
+
+**The token *is* the OFT contract** — one transaction. The contract burns or
+locks your tokens directly, so no approval is needed.
+
+**The token is a plain ERC-20 with a separate adapter** — two transactions:
+
+1. `approve` — allow the adapter contract to move your tokens.
+2. `bridge` — the transfer itself.
+
+This is standard ERC-20 behaviour, not something specific to this bridge: a
+contract cannot move your tokens until you permit it. The first transaction is
+cheap; the fee you see quoted belongs to the second one.
+
+The bridge shows which case applies — the search result includes
+`tokenIsOft: true/false`, and the OFT contract address is shown under
+**Bridge details** whenever it differs from the token address.
 
 ---
 
@@ -214,6 +272,7 @@ backend/
   server.js              Express app, CORS allowlist, rate limiting
   lib/
     chains.js            Network definitions (RPC, EID, explorer)
+    cache.js             In-memory LRU+TTL cache for search results
     oftSearch.js         Core: OFT resolution, route search, peers()
     decoder.js           Decodes call layout from a real transaction
     rpc.js               JSON-RPC helper with retries
@@ -241,7 +300,11 @@ frontend/
 | `GET /api/balance` | Token balance |
 | `GET /api/quote` | Fee quote |
 | `GET /api/tx-status` | LayerZero delivery status |
+| `GET /api/cache-stats` | Cache size and hit rate |
 | `GET /api/health` | Health check |
+
+`GET /api/scan-token?token=…&refresh=1` bypasses the cached network list and
+rescans from scratch.
 
 ---
 
@@ -262,6 +325,14 @@ regenerate `frontend/.env`, and restart the dev server (Vite reads env at startu
 
 **"Bridge route not found"** — the route may be genuinely unused. Try entering the
 destination OFT contract or a sample transaction hash manually.
+
+**"This direction is currently disabled"** — not a bug and not something you can
+work around. The token's own contract has no `peer` configured for that network,
+so the transaction would be rejected on-chain. Pick another destination network,
+or ask the token's team to enable the direction.
+
+**"Too many requests"** — the per-IP rate limit. Wait a minute. If you are
+self-hosting and this gets in the way, raise `RL_SCAN_MAX` / `RL_FIND_MAX`.
 
 **Token search finds nothing** — usually the network's RPC cannot serve historical
 logs. Run `node backend/tools/checkLogsRpc.js` and set `LOGS_RPC_<CHAIN>` if needed.

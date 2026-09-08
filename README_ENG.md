@@ -114,9 +114,12 @@ access:
 LOGS_RPC_BSC=https://bsc-mainnet.nodereal.io/v1/YOUR_KEY
 ```
 
-You can list several nodes separated by commas — they are tried in order, and
-the bridge also switches to the next one **mid-scan** if the current node starts
-refusing requests:
+You can list several nodes separated by commas. They are tried in order, and the
+bridge also switches **mid-scan**: if the current node starts refusing requests,
+the search moves to the next node and **resumes from the same block range**, so
+no work is repeated and the scan is not abandoned. This matters because a node
+can pass a short probe and still collapse under several hundred requests in a
+row.
 
 ```
 LOGS_RPC_BSC=https://primary.example/KEY,https://backup.example/KEY

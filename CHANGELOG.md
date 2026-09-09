@@ -9,7 +9,7 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.2.2] — 2026-09-09
+## [1.2.1] — 2026-09-09
 
 ### Added
 
@@ -23,17 +23,6 @@ and versions follow [Semantic Versioning](https://semver.org/).
 - The same message now also appears when adding a custom token, not only when
   searching a route. Previously that dialog said nothing at all.
 
-### Fixed
-
-- A search that ran past the server timeout showed a raw JavaScript error
-  (`Unexpected token '<'`) instead of an explanation. Responses that are not
-  JSON are now handled everywhere, with a clear message suggesting a retry or
-  entering the OFT contract manually.
-
----
-
-## [1.2.1] — 2026-09-09
-
 ### Changed
 
 - The footer now reads "Built on the LayerZero V2 protocol" instead of "Powered
@@ -43,6 +32,13 @@ and versions follow [Semantic Versioning](https://semver.org/).
   open-source project, not affiliated with, endorsed by, or operated by
   LayerZero Labs Ltd, and that the LayerZero name is used only to describe the
   protocol this interface interacts with.
+
+### Fixed
+
+- A search that ran past the server timeout showed a raw JavaScript error
+  (`Unexpected token '<'`) instead of an explanation. Responses that are not
+  JSON are now handled everywhere, with a clear message suggesting a retry or
+  entering the OFT contract manually.
 
 ---
 
@@ -207,7 +203,6 @@ that approach: the bridge asks the contracts, rather than trusting history.
 Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche, Mantle,
 HyperEVM, Ink, X Layer, Plasma, Robinhood.
 
-[1.2.2]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.2
 [1.2.1]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.1.0

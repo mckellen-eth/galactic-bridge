@@ -24,6 +24,7 @@ In this repository:
 | 🇬🇧 **English** | [README_ENG.md](README_ENG.md) |
 | 🇺🇦 **Українська** | [README_UKR.md](README_UKR.md) |
 | 📋 **Changelog** | [CHANGELOG.md](CHANGELOG.md) · [українською](CHANGELOG_UKR.md) |
+| 🧪 **Tokens to try** | [EXAMPLES.md](EXAMPLES.md) |
 
 ## Quick start
 

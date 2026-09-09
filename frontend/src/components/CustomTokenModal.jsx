@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CHAINS, CHAIN_LIST } from '../lib/chains';
+import { fetchJson } from '../lib/fetchJson';
 
 const STORAGE_KEY = 'lz-custom-tokens';
 const normalize = (v) => (v || '').trim().toLowerCase();
@@ -61,7 +62,7 @@ export default function CustomTokenModal({ open, onClose, onSelect, fromChain })
     setStep('searching');
     setResults(null);
     try {
-      const j = await fetch(`/api/scan-token?token=${tokenAddress}`).then((r) => r.json());
+      const j = await fetchJson(`/api/scan-token?token=${tokenAddress}`);
       if (j.meta?.symbol || j.meta?.name) setName([j.meta?.symbol, j.meta?.name].filter(Boolean).join(' · '));
       if (!j.ok) {
         setError(j.error || 'Failed to scan token');
@@ -299,7 +300,7 @@ function ManualChainAdder({ existing, onAdded }) {
     }
     setBusy(true);
     try {
-      const j = await fetch(`/api/verify-oft?chain=${chainKey}&oft=${oftLower}`).then((r) => r.json());
+      const j = await fetchJson(`/api/verify-oft?chain=${chainKey}&oft=${oftLower}`);
       if (!j.ok || !j.verified) {
         setErr(j.error || 'OFT not verified');
         return;

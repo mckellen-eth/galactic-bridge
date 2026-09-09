@@ -4,6 +4,7 @@ import { useAppKit } from '@reown/appkit/react';
 import { CHAINS, CHAIN_LIST } from './lib/chains';
 import { encodeSendCalldata } from './lib/encoder';
 import { fmt, shortHash } from './lib/format';
+import { fetchJson } from './lib/fetchJson';
 import CustomTokenModal from './components/CustomTokenModal';
 import RareRouteModal from './components/RareRouteModal';
 import Footer from './components/Footer';
@@ -282,20 +283,6 @@ function ChainSelect({ value, onChange, chains = CHAIN_LIST, placeholder = '— 
   );
 }
 
-// Безпечний fetch: якщо сервер повернув не-JSON (напр. таймаут nginx → HTML),
-// даємо зрозуміле повідомлення замість "Unexpected token '<'".
-async function fetchJson(url, opts) {
-  const r = await fetch(url, opts);
-  const ct = r.headers.get('content-type') || '';
-  if (!ct.includes('application/json')) {
-    if (r.status === 504 || r.status === 502 || r.status >= 500) {
-      throw new Error('Search took too long on the server. Please try again in a moment, or add the OFT contract manually.');
-    }
-    throw new Error(`Server returned an unexpected response (${r.status}).`);
-  }
-  return r.json();
-}
-
 function CopyButton({ value }) {
   const [done, setDone] = useState(false);
   const copy = async () => { await navigator.clipboard.writeText(value); setDone(true); setTimeout(() => setDone(false), 1200); };
@@ -475,7 +462,7 @@ export default function App() {
         const ownerPadded = address.slice(2).toLowerCase().padStart(64, '0');
         const spenderPadded = params.oftContract.slice(2).toLowerCase().padStart(64, '0');
         const allowanceData = '0xdd62ed3e' + ownerPadded + spenderPadded;
-        const allowanceRes = await fetch(`/api/rpc-call?chain=${fromChain}&to=${params.tokenAddress}&data=${allowanceData}`).then(r => r.json());
+        const allowanceRes = await fetchJson(`/api/rpc-call?chain=${fromChain}&to=${params.tokenAddress}&data=${allowanceData}`);
         const allowance = allowanceRes.ok ? BigInt(allowanceRes.result || '0x0') : 0n;
 
         if (allowance < amountWei) {

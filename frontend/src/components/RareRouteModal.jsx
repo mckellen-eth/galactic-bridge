@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { fetchJson } from '../lib/fetchJson';
 
 const normalize = (v) => (v || '').trim().toLowerCase();
 
@@ -40,7 +41,7 @@ export default function RareRouteModal({ open, onClose, onResolved, fromChain, t
 
     setBusy(true);
     try {
-      const j = await fetch(`/api/bridge-params-manual?${params.toString()}`).then((r) => r.json());
+      const j = await fetchJson(`/api/bridge-params-manual?${params.toString()}`);
       if (!j.ok) {
         setErr(j.error || 'Manual lookup failed');
         return;

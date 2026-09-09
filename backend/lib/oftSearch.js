@@ -215,6 +215,17 @@ async function lzScanOapp1(eid, address) {
   return { ok: r.ok, msgs: r.ok ? r.data : [] };
 }
 
+// Чи бріджиться цей контракт через LayerZero V1? У V1 ідентифікатор мережі
+// без префікса 30000 (ethereum 101, bsc 102, avalanche 106, arbitrum 110).
+// V1 — інший ендпоінт, інший інтерфейс, немає peers(); ми підтримуємо V2.
+// Дешева перевірка: один запит до API замість сотень запитів глибокого скану.
+export async function isLayerZeroV1(eidV2, address) {
+  const eidV1 = Number(eidV2) - 30000;
+  if (eidV1 <= 0) return false;
+  const r = await lzFetchJson(`${LZ_API}/messages/oapp/${eidV1}/${lower(address)}?limit=1`);
+  return r.ok && Array.isArray(r.data) && r.data.length > 0;
+}
+
 async function lzScanByTx(txHash) {
   try {
     const res = await fetch(layerZeroTxUrl(txHash), { headers: { Accept: 'application/json' } });
@@ -503,6 +514,15 @@ export async function resolveOft(tokenAddress, chain) {
     }
   }
 
+  // KROK 1.5: перш ніж запускати ГЛИБОКИЙ СКАН (сотні запитів, хвилини) —
+  // одна дешева перевірка на LayerZero V1. Робиться лише тоді, коли API
+  // відповів і сказав «це не V2 OApp» (pre.ok && порожньо). Якщо токен мігрував
+  // з V1 на V2, KROK 1 зловив би його раніше і сюди ми не дійшли б.
+  if (pre.ok && await isLayerZeroV1(chain.eid, token)) {
+    log(`resolveOft: ${token.slice(0, 10)} використовує LayerZero V1 на ${chain.key} — скан не потрібен`);
+    return { v1: true };
+  }
+
   // KROK 2: token != OFT — шукаємо через Transfer logs + lzScanByTx + OFT*Topic
   const found = await findOftViaTransferAndLzScan(token, chain);
   if (found?.oft) {
@@ -529,6 +549,7 @@ export async function findBridgeParams(tokenAddress, fromChain, toChain, dstOft 
     log(`findBridgeParams: using known srcOft=${srcOft} (no scan)`);
   } else {
     const resolved = await resolveOft(tokenAddress, fromChain);
+    if (resolved?.v1) return { ok: false, isV1: true, error: 'LayerZero V1 token' };
     if (!resolved) return { ok: false, error: `OFT not found on ${fromChain.key}` };
     srcOft = resolved.oft;
   }
@@ -731,6 +752,10 @@ export async function scanAllRoutes(sourceChain, tokenAddress, { noCache = false
   }
 
   const resolved = await resolveOft(tokenAddress, sourceChain);
+  if (resolved?.v1) {
+    log('scanAllRoutes: токен на LayerZero V1 — не підтримується');
+    return { v1: true };
+  }
   if (!resolved) {
     log('scanAllRoutes: resolveOft returned null');
     return null;

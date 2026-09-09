@@ -75,12 +75,24 @@ router.get('/', async (req, res) => {
     // тож не здаємось на першій невдачі, а доводимо пошук до кінця.
     // ?refresh=1 — примусово оминути кеш (кнопка "оновити мережі")
     const noCache = req.query.refresh === '1';
-    let result = null, usedChain = null;
+    let result = null, usedChain = null, isV1 = false;
     for (const chain of ordered) {
       console.log('[scan-token] trying sourceChain=', chain.key);
       const r = await scanAllRoutes(chain, token, { noCache });
+      // Токен на LayerZero V1 — інші мережі перебирати немає сенсу, там те саме.
+      if (r?.v1) { isV1 = true; break; }
       if (r && Object.keys(r.chains || {}).length) { result = r; usedChain = chain; break; }
       console.log(`[scan-token] no routes from ${chain.key}, trying next…`);
+    }
+
+    if (isV1) {
+      console.log('[scan-token] токен використовує LayerZero V1 — не підтримується');
+      return res.json({
+        ok: false,
+        isV1: true,
+        chains: {},
+        error: 'This token bridges over LayerZero V1. Galactic Bridge supports LayerZero V2 contracts only.',
+      });
     }
 
     if (!result) {

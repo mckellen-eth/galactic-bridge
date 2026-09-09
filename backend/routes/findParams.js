@@ -184,6 +184,15 @@ router.get('/', async (req, res) => {
     console.log(`[find-params] STEP 2: bridge lookup ${fromChain.key}->${toChain.key}${dstOft ? ` dstOft=${dstOft.slice(0,12)}` : ''}`);
     try {
       const exactBridge = await findBridgeParams(tokenAddress, fromChain, toChain, dstOft, manualOft);
+      // V1 визначився ще до глибокого скану — далі шукати нічого
+      if (exactBridge?.isV1) {
+        console.log('[find-params] токен використовує LayerZero V1 — не підтримується');
+        return res.json({
+          ok: false,
+          isV1: true,
+          error: 'This token bridges over LayerZero V1. Galactic Bridge supports LayerZero V2 contracts only.',
+        });
+      }
       if (exactBridge?.srcOft) resolvedSrcOft = exactBridge.srcOft;
       if (exactBridge?.ok) {
         oftContract = exactBridge.oftContract;

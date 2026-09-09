@@ -9,6 +9,29 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.2] — 2026-09-09
+
+### Added
+
+- **The protocol version is now identified immediately.** Galactic Bridge works
+  with LayerZero V2. A V1 token used to look like a failure: the search ran a
+  full log scan across every network the address exists on — several hundred
+  requests, minutes of waiting — and then simply reported that nothing was
+  found. The version is now checked with a single cheap request before any
+  scanning starts, and the answer arrives in about a second: *"This token
+  bridges over LayerZero V1."*
+- The same message now also appears when adding a custom token, not only when
+  searching a route. Previously that dialog said nothing at all.
+
+### Fixed
+
+- A search that ran past the server timeout showed a raw JavaScript error
+  (`Unexpected token '<'`) instead of an explanation. Responses that are not
+  JSON are now handled everywhere, with a clear message suggesting a retry or
+  entering the OFT contract manually.
+
+---
+
 ## [1.2.1] — 2026-09-09
 
 ### Changed
@@ -184,6 +207,7 @@ that approach: the bridge asks the contracts, rather than trusting history.
 Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche, Mantle,
 HyperEVM, Ink, X Layer, Plasma, Robinhood.
 
+[1.2.2]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.2
 [1.2.1]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.1.0

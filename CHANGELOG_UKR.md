@@ -9,6 +9,20 @@
 
 ---
 
+## [1.2.1] — 09.09.2026
+
+### Змінено
+
+- У футері тепер «Built on the LayerZero V2 protocol» замість «Powered by
+  LayerZero». Попереднє формулювання могло читатись як заява про офіційну
+  приналежність, чим воно ніколи не було.
+- У дисклеймері прямо зазначено, що Galactic Bridge — незалежний проєкт із
+  відкритим кодом, не пов'язаний із LayerZero Labs Ltd, не ними схвалений і не
+  ними керований, а назва LayerZero вживається лише для опису протоколу, з яким
+  працює цей інтерфейс.
+
+---
+
 ## [1.2.0] — 08.09.2026
 
 Випуск про надійність. В інтерфейсі не змінилось нічого; пошук під ним стало
@@ -164,6 +178,7 @@
 Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche, Mantle,
 HyperEVM, Ink, X Layer, Plasma, Robinhood.
 
+[1.2.1]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.0.0

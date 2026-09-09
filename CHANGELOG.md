@@ -9,6 +9,20 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.1] — 2026-09-09
+
+### Changed
+
+- The footer now reads "Built on the LayerZero V2 protocol" instead of "Powered
+  by LayerZero". The previous wording could be read as a claim of official
+  affiliation, which it was never meant to be.
+- The disclaimer now states plainly that Galactic Bridge is an independent,
+  open-source project, not affiliated with, endorsed by, or operated by
+  LayerZero Labs Ltd, and that the LayerZero name is used only to describe the
+  protocol this interface interacts with.
+
+---
+
 ## [1.2.0] — 2026-09-08
 
 Reliability release. Nothing about the interface changed; the search underneath
@@ -170,6 +184,7 @@ that approach: the bridge asks the contracts, rather than trusting history.
 Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche, Mantle,
 HyperEVM, Ink, X Layer, Plasma, Robinhood.
 
+[1.2.1]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.0.0

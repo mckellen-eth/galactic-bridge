@@ -48,7 +48,10 @@ export default function Footer() {
             </React.Fragment>
           ))}
         </div>
-        <div className="foot-copy">© {yearLabel} Galactic Bridge · Powered by LayerZero</div>
+        {/* «Powered by» може читатись як заява про офіційну приналежність — саме це
+            стало приводом для скарги про impersonation. Формулювання нижче описує
+            протокол, а не стосунки з його розробником. */}
+        <div className="foot-copy">© {yearLabel} Galactic Bridge · Built on the LayerZero V2 protocol</div>
       </footer>
 
       {open && (
@@ -117,6 +120,11 @@ export default function Footer() {
 
             {open === 'Disclaimer' && (
               <div className="section">
+                <p style={{ lineHeight: 1.6 }}>
+                  Galactic Bridge is an independent, open-source project. It is not affiliated with, endorsed by, or
+                  operated by LayerZero Labs Ltd. "LayerZero" is used here only to describe the protocol this interface
+                  interacts with. All trademarks are the property of their respective owners.
+                </p>
                 <p style={{ lineHeight: 1.6 }}>
                   Galactic Bridge is a non-custodial interface. It never holds your funds or private keys — you sign every
                   transaction in your own wallet, and no account or personal data is required.

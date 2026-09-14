@@ -312,7 +312,18 @@ async function pickLogsUrl(chain, token, latest) {
 // діапазону і тихо здавався. Тепер відмова видно нагору → можна перемкнути вузол.
 export const RPC_FAIL = Symbol('rpc-fail');
 
-async function scanChunkForOft(chain, token, from, to, logsUrl, depth = 0) {
+// Скільки хешів транзакцій токена зберігаємо для пояснення невдачі.
+// Якщо OFT не знайдено, ці транзакції можна запитати в LayerZero API —
+// раптом токен бріджить сторонній застосунок через свій спільний контракт.
+//
+// Чому так багато: у вибірку потрапляють ЗВИЧАЙНІ перекази (купівлі, продажі,
+// переводи між гаманцями), а транзакція бріджа серед них трапляється рідко.
+// З шістьма хешами визначення виходило недетермінованим — спрацьовувало через
+// раз. Збираємо 30 і опитуємо 12 рознесених по всьому діапазону.
+const TX_SAMPLE_MAX = 30;
+const TX_QUERY_MAX = 12;
+
+async function scanChunkForOft(chain, token, from, to, logsUrl, depth = 0, txSample = null) {
   const hex = (n) => '0x' + n.toString(16);
 
   const transfers = await rpc(logsUrl, 'eth_getLogs', [{
@@ -320,18 +331,31 @@ async function scanChunkForOft(chain, token, from, to, logsUrl, depth = 0) {
   }]);
 
   // RPC відмовив (завеликий діапазон/ліміт) → ділимо навпіл, новішу половину першою.
+  // Глибина 4, а не 2: у дуже активних токенів на швидких мережах (Base — блок
+  // за 2 с) навіть 2500 блоків дають завелику відповідь, і її відхиляють УСІ
+  // провайдери. Раніше це виглядало як «всі вузли мертві», хоча проблема в
+  // розмірі відповіді. 10000 → 5000 → 2500 → 1250 → 625.
   if (transfers === null) {
-    if (depth >= 2 || to - from < 400) return RPC_FAIL;
+    if (depth >= 4 || to - from < 200) return RPC_FAIL;
     const mid = Math.floor((from + to) / 2);
-    const a = await scanChunkForOft(chain, token, mid + 1, to, logsUrl, depth + 1);
+    const a = await scanChunkForOft(chain, token, mid + 1, to, logsUrl, depth + 1, txSample);
     if (a && a !== RPC_FAIL) return a;
-    const b = await scanChunkForOft(chain, token, from, mid, logsUrl, depth + 1);
+    const b = await scanChunkForOft(chain, token, from, mid, logsUrl, depth + 1, txSample);
     if (b && b !== RPC_FAIL) return b;
     // жодної знахідки; якщо хоч одна половина впала — це відмова вузла
     return (a === RPC_FAIL || b === RPC_FAIL) ? RPC_FAIL : null;
   }
   if (!Array.isArray(transfers) || transfers.length === 0) return null;
   const txs = new Set(transfers.map((l) => l.transactionHash));
+
+  // Запам'ятовуємо кілька найновіших переказів — знадобляться лише якщо пошук
+  // провалиться. Нічого не коштує: логи вже в руках.
+  if (txSample && txSample.length < TX_SAMPLE_MAX) {
+    for (const h of txs) {
+      if (txSample.length >= TX_SAMPLE_MAX) break;
+      if (!txSample.includes(h)) txSample.push(h);
+    }
+  }
 
   // Основний шлях: події OFTSent/OFTReceived по всьому чейну в цьому ж діапазоні.
   const oftLogs = await rpc(logsUrl, 'eth_getLogs', [{
@@ -408,6 +432,8 @@ async function findOftViaTransferAndLzScan(tokenAddress, chain) {
   // продовжуючи з того самого місця.
   const triedUrls = new Set([logsUrl]);
   let failStreak = 0;
+  const txSample = []; // хеші переказів токена — для пояснення, якщо нічого не знайдемо
+  let allNodesFailed = false; // жоден вузол не віддав логи — це НЕ «нічого не знайдено»
 
   // Паралельні батчі, від найновіших блоків; рання зупинка при першій знахідці.
   for (let i = 0; i < maxChunks; i += SCAN_PARALLEL) {
@@ -416,7 +442,7 @@ async function findOftViaTransferAndLzScan(tokenAddress, chain) {
       const to = latest - (i + k) * chunk;
       if (to <= 0) break;
       const from = Math.max(0, to - chunk + 1);
-      batch.push(scanChunkForOft(chain, token, from, to, logsUrl));
+      batch.push(scanChunkForOft(chain, token, from, to, logsUrl, 0, txSample));
     }
     if (batch.length === 0) break;
     const results = await Promise.all(batch);
@@ -433,6 +459,7 @@ async function findOftViaTransferAndLzScan(tokenAddress, chain) {
         const next = logsCandidates(chain).find((u) => !triedUrls.has(u));
         if (!next) {
           log(`findOFT: ${chain.key} — усі вузли відмовляють, скан припинено`);
+          allNodesFailed = true;
           break;
         }
         log(`findOFT: ${chain.key} node failing → switching to ${next}`);
@@ -448,7 +475,97 @@ async function findOftViaTransferAndLzScan(tokenAddress, chain) {
   }
 
   log(`findOFT: no LayerZero bridge tx for this token on ${chain.key} in scanned range`);
+
+  // Остання спроба ПОЯСНИТИ невдачу, а не просто здатися. Деякі токени
+  // (напр. випущені лаунчпадами) не мають власного OFT: їх бріджить сторонній
+  // застосунок через один спільний контракт із власним інтерфейсом. Такі
+  // транзакції не видають подій OFTSent/OFTReceived, тому наш пошук їх не бачить.
+  // Але LayerZero API знає, якому застосунку належить транзакція — питаємо його
+  // про кілька переказів токена, які ми й так зібрали під час скану.
+  const viaApi = await resolveViaLzApi(chain, token, txSample);
+  if (viaApi?.oft) {
+    log(`findOFT: OFT=${viaApi.oft} знайдено через LZ API (скан його пропустив) tx=${(viaApi.proofTx || '').slice(0, 12)}`);
+    return viaApi;
+  }
+  if (viaApi?.externalApp) {
+    log(`findOFT: токен бріджить сторонній застосунок "${viaApi.externalApp}"${viaApi.appIsV1 ? ' (LayerZero V1)' : ''} — власного OFT немає`);
+    return { externalApp: viaApi.externalApp, appIsV1: !!viaApi.appIsV1 };
+  }
+
+  // Якщо жоден вузол не віддав логи, ми не шукали — ми НЕ ЗМОГЛИ шукати.
+  // Казати «не знайдено» в цьому випадку означає вводити людину в оману:
+  // токен може бути цілком робочим, просто мережа не дала даних.
+  if (allNodesFailed) {
+    log(`findOFT: ${chain.key} — результат невідомий, вузли не віддали історичні логи`);
+    return { nodesUnavailable: true };
+  }
   return null;
+}
+
+// Остання спроба через LayerZero API, коли скан логів нічого не дав.
+// Питає API про транзакції токена й дивиться, ЯКИЙ контракт відправляв повідомлення.
+//
+// Можливі результати:
+//   { oft }         — контракт-відправник підтвердив через token(), що обслуговує
+//                     саме наш токен. Тобто це адаптер, який скан пропустив
+//                     (напр. він не видає стандартних подій OFTSent/OFTReceived).
+//   { externalApp } — відправник до нашого токена не має стосунку: його бріджить
+//                     сторонній застосунок через свій спільний контракт.
+//   null            — нічого певного.
+//
+// ВАЖЛИВО: наявність назви застосунку сама по собі НІЧОГО не означає. Більшість
+// нормальних OFT-проєктів теж зареєстровані в LayerZero під своєю назвою — у них
+// просто адреса відправника збігається з адресою токена. Тому вирішує не назва,
+// а відповідь token() на контракті-відправнику.
+async function resolveViaLzApi(chain, token, txHashes) {
+  if (!Array.isArray(txHashes) || txHashes.length === 0) return null;
+  let appName = null;
+  let appIsV1 = false;
+
+  // Беремо не перші N підряд (вони всі з одного діапазону блоків), а рівномірно
+  // по всій вибірці — так охоплюємо ширший проміжок часу тією ж кількістю запитів.
+  const step = Math.max(1, Math.ceil(txHashes.length / TX_QUERY_MAX));
+  const sample = txHashes.filter((_, i) => i % step === 0).slice(0, TX_QUERY_MAX);
+  log(`resolveViaLzApi: питаю LayerZero API про ${sample.length} з ${txHashes.length} транзакцій токена`);
+
+  const eidV2 = Number(chain.eid);
+  const eidV1 = eidV2 - 30000; // у V1 ідентифікатори без префікса 30000
+
+  for (const hash of sample) {
+    const msg = await lzScanByTx(hash);
+    const p = msg?.pathway;
+    if (!p) continue;
+
+    // Беремо той бік, який стосується нашої мережі. Порівнювати треба з ОБОМА
+    // варіантами ідентифікатора: застосунок може працювати на V1, і тоді
+    // srcEid буде 101, а не 30101. Без цього ми брали б не той бік і питали
+    // token() на адресі з чужої мережі.
+    const src = Number(p.srcEid);
+    const onSrc = src === eidV2 || src === eidV1;
+    const side = onSrc ? p.sender : p.receiver;
+    const addr = lower(side?.address);
+    if (!addr || addr === lzEndpointLower) continue;
+
+    // Відправник — сам токен: він і є OApp, до сторонніх застосунків це не має
+    // стосунку. Пошук OFT мав спрацювати раніше, тут нічого не додаємо.
+    if (addr === token) continue;
+
+    // Чи обслуговує цей контракт саме наш токен?
+    const underlying = lower(await getOftTokenAddress(addr, chain.rpc));
+    if (underlying === token) return { oft: addr, proofTx: hash };
+
+    // Ні — запам'ятовуємо назву, але шукаємо далі: раптом в іншій транзакції
+    // знайдеться справжній адаптер.
+    if (!appName) {
+      appName = side?.name || side?.id || null;
+      // Ідентифікатор менший за 30000 означає LayerZero V1. Сам застосунок може
+      // бути на V1, навіть якщо токен до цього не має стосунку — про це варто
+      // сказати користувачу окремо.
+      appIsV1 = src > 0 && src < 30000;
+    }
+  }
+
+  return appName ? { externalApp: String(appName), appIsV1 } : null;
 }
 
 function extractMsgAddrs(msg) {
@@ -480,7 +597,11 @@ function decodeLayout(input) {
   return { selector, pointer, nativeFee };
 }
 
-export async function resolveOft(tokenAddress, chain) {
+// opts.altEid — ще один ідентифікатор мережі для перевірки на V1 (зазвичай
+// мережа призначення). Токен може бути зареєстрований як V1-застосунок не на
+// всіх мережах, і без цього ми запускали б важкий скан там, де відповідь уже
+// відома. Перевірка дешева і робиться лише тоді, коли токен не є V2 OApp.
+export async function resolveOft(tokenAddress, chain, opts = {}) {
   const token = lower(tokenAddress);
   log(`resolveOft chain=${chain.key} token=${token}`);
 
@@ -518,13 +639,27 @@ export async function resolveOft(tokenAddress, chain) {
   // одна дешева перевірка на LayerZero V1. Робиться лише тоді, коли API
   // відповів і сказав «це не V2 OApp» (pre.ok && порожньо). Якщо токен мігрував
   // з V1 на V2, KROK 1 зловив би його раніше і сюди ми не дійшли б.
-  if (pre.ok && await isLayerZeroV1(chain.eid, token)) {
-    log(`resolveOft: ${token.slice(0, 10)} використовує LayerZero V1 на ${chain.key} — скан не потрібен`);
-    return { v1: true };
+  if (pre.ok) {
+    const eidsToCheck = [chain.eid];
+    if (opts.altEid && Number(opts.altEid) !== Number(chain.eid)) eidsToCheck.push(opts.altEid);
+    const v1Flags = await Promise.all(eidsToCheck.map((e) => isLayerZeroV1(e, token)));
+    if (v1Flags.some(Boolean)) {
+      const where = eidsToCheck.filter((_, i) => v1Flags[i]).join(',');
+      log(`resolveOft: ${token.slice(0, 10)} використовує LayerZero V1 (eid ${where}) — скан не потрібен`);
+      return { v1: true };
+    }
   }
 
   // KROK 2: token != OFT — шукаємо через Transfer logs + lzScanByTx + OFT*Topic
   const found = await findOftViaTransferAndLzScan(token, chain);
+  if (found?.externalApp) {
+    log(`resolveOft: ${token.slice(0, 10)} бріджить сторонній застосунок "${found.externalApp}"${found.appIsV1 ? ' на LayerZero V1' : ''}`);
+    return { externalApp: found.externalApp, appIsV1: !!found.appIsV1 };
+  }
+  if (found?.nodesUnavailable) {
+    log(`resolveOft: ${chain.key} — перевірити не вдалося, вузли не віддали логи`);
+    return { nodesUnavailable: true };
+  }
   if (found?.oft) {
     log(`resolveOft: found OFT via tx-scan on ${chain.key}: ${found.oft} (proofTx=${found.proofTx})`);
     const res = { oft: found.oft, tokenIsOft: false };
@@ -548,8 +683,10 @@ export async function findBridgeParams(tokenAddress, fromChain, toChain, dstOft 
     srcOft = lower(srcOftHint);
     log(`findBridgeParams: using known srcOft=${srcOft} (no scan)`);
   } else {
-    const resolved = await resolveOft(tokenAddress, fromChain);
+    const resolved = await resolveOft(tokenAddress, fromChain, { altEid: toChain.eid });
     if (resolved?.v1) return { ok: false, isV1: true, error: 'LayerZero V1 token' };
+    if (resolved?.externalApp) return { ok: false, externalApp: resolved.externalApp, appIsV1: !!resolved.appIsV1 };
+    if (resolved?.nodesUnavailable) return { ok: false, nodesUnavailable: true };
     if (!resolved) return { ok: false, error: `OFT not found on ${fromChain.key}` };
     srcOft = resolved.oft;
   }
@@ -755,6 +892,14 @@ export async function scanAllRoutes(sourceChain, tokenAddress, { noCache = false
   if (resolved?.v1) {
     log('scanAllRoutes: токен на LayerZero V1 — не підтримується');
     return { v1: true };
+  }
+  if (resolved?.externalApp) {
+    log(`scanAllRoutes: токен бріджить "${resolved.externalApp}" — власного OFT немає`);
+    return { externalApp: resolved.externalApp, appIsV1: !!resolved.appIsV1 };
+  }
+  if (resolved?.nodesUnavailable) {
+    log(`scanAllRoutes: ${sourceChain.key} — вузли не віддали логи, результат невідомий`);
+    return { nodesUnavailable: true };
   }
   if (!resolved) {
     log('scanAllRoutes: resolveOft returned null');

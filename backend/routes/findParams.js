@@ -193,6 +193,34 @@ router.get('/', async (req, res) => {
           error: 'This token bridges over LayerZero V1. Galactic Bridge supports LayerZero V2 contracts only.',
         });
       }
+      // Токен бріджить сторонній застосунок через власний контракт — повторити
+      // такий виклик ми не можемо, але можемо чесно сказати, у чому річ.
+      if (exactBridge?.externalApp) {
+        const app = exactBridge.externalApp;
+        const appV1 = !!exactBridge.appIsV1;
+        console.log(`[find-params] токен бріджить сторонній застосунок "${app}"`);
+        return res.json({
+          ok: false,
+          externalApp: app,
+          error: `This token is bridged by ${app}, a third-party application`
+               + `${appV1 ? ' running on LayerZero V1' : ''}, not by its own OFT contract. `
+               + `Galactic Bridge works with tokens that have their own LayerZero V2 OFT contract or adapter, `
+               + `so this one has to be moved through ${app} itself.`,
+        });
+      }
+      // Вузли мережі не віддали історичні логи — ми не змогли перевірити.
+      // Це НЕ те саме, що «маршруту немає», тому й повідомлення інше.
+      if (exactBridge?.nodesUnavailable) {
+        console.log('[find-params] вузли не віддали логи — результат невідомий');
+        return res.json({
+          ok: false,
+          nodesUnavailable: true,
+          needsManualOft: true,
+          error: `Could not complete the search: the ${fromChain.name} nodes did not return historical logs, `
+               + `so the token's bridge contract could not be looked up. This is a data-provider problem, not a `
+               + `verdict about the token. Try again in a moment, or enter the OFT contract manually.`,
+        });
+      }
       if (exactBridge?.srcOft) resolvedSrcOft = exactBridge.srcOft;
       if (exactBridge?.ok) {
         oftContract = exactBridge.oftContract;
@@ -288,8 +316,18 @@ router.get('/', async (req, res) => {
     // Перевірка на LayerZero V1: у V1 ідентифікатори мереж без префікса 30000
     // (avalanche 106 замість 30106). V1 — інший ендпоінт і інший інтерфейс,
     // тож краще сказати про це прямо, ніж писати "маршрут не знайдено".
-    if (await isLayerZeroV1(fromChain.eid, tokenAddress)) {
-      console.log(`[find-params] STEP 4: токен використовує LayerZero V1 — не підтримується`);
+    //
+    // Питаємо ОБИДВІ мережі пари. Токен може бути зареєстрований як V1-застосунок
+    // не на всіх мережах: у реальному випадку (OmniCat) V1-повідомлення були на
+    // Polygon і Arbitrum, але не на Ethereum. Через це Ethereum → Arbitrum давав
+    // сухе «маршрут не знайдено», а Polygon → Base одразу пояснював причину.
+    // Токен або на V1, або ні — мережа, з якої ми це побачили, не змінює суті.
+    const [v1Src, v1Dst] = await Promise.all([
+      isLayerZeroV1(fromChain.eid, tokenAddress),
+      isLayerZeroV1(toChain.eid, tokenAddress),
+    ]);
+    if (v1Src || v1Dst) {
+      console.log(`[find-params] STEP 4: токен використовує LayerZero V1 (${v1Src ? fromChain.key : ''}${v1Src && v1Dst ? '+' : ''}${v1Dst ? toChain.key : ''}) — не підтримується`);
       return res.json({
         ok: false,
         isV1: true,

@@ -75,14 +75,44 @@ router.get('/', async (req, res) => {
     // тож не здаємось на першій невдачі, а доводимо пошук до кінця.
     // ?refresh=1 — примусово оминути кеш (кнопка "оновити мережі")
     const noCache = req.query.refresh === '1';
-    let result = null, usedChain = null, isV1 = false;
+    let result = null, usedChain = null, isV1 = false, externalApp = null, externalAppV1 = false, nodesDown = false;
     for (const chain of ordered) {
       console.log('[scan-token] trying sourceChain=', chain.key);
       const r = await scanAllRoutes(chain, token, { noCache });
       // Токен на LayerZero V1 — інші мережі перебирати немає сенсу, там те саме.
       if (r?.v1) { isV1 = true; break; }
+      // Вузли цієї мережі мовчать — запамʼятовуємо, але інші мережі ще пробуємо.
+      if (r?.nodesUnavailable) { nodesDown = true; continue; }
+      // Бріджить сторонній застосунок — запам'ятовуємо, але інші мережі ще пробуємо:
+      // раптом деінде в токена все ж є власний OFT.
+      if (r?.externalApp && !externalApp) { externalApp = r.externalApp; externalAppV1 = !!r.appIsV1; }
       if (r && Object.keys(r.chains || {}).length) { result = r; usedChain = chain; break; }
       console.log(`[scan-token] no routes from ${chain.key}, trying next…`);
+    }
+
+    if (!result && externalApp) {
+      console.log(`[scan-token] токен бріджить сторонній застосунок "${externalApp}"`);
+      return res.json({
+        ok: false,
+        externalApp,
+        chains: {},
+        error: `This token is bridged by ${externalApp}, a third-party application`
+             + `${externalAppV1 ? ' running on LayerZero V1' : ''}, not by its own OFT contract. `
+             + `Galactic Bridge works with tokens that have their own LayerZero V2 OFT contract or adapter, `
+             + `so this one has to be moved through ${externalApp} itself.`,
+      });
+    }
+
+    if (!result && nodesDown) {
+      console.log('[scan-token] вузли не віддали логи — результат невідомий');
+      return res.json({
+        ok: false,
+        nodesUnavailable: true,
+        chains: {},
+        error: 'Could not complete the search: the network nodes did not return historical logs, so the '
+             + "token's bridge contract could not be looked up. This is a data-provider problem, not a "
+             + 'verdict about the token. Please try again in a moment.',
+      });
     }
 
     if (isV1) {

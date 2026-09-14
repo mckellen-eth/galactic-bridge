@@ -9,6 +9,43 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.0] — 2026-09-14
+
+### Added
+
+- **"Not found" now says what actually happened.** One message used to cover
+  three very different situations. They are now told apart:
+  - *the token is bridged by a third-party application.* Some launchpads move
+    every token they issue through one shared contract with its own interface,
+    so the token has no OFT contract of its own. The bridge names the
+    application instead of leaving you guessing.
+  - *the search could not be completed.* When the network's nodes refuse to
+    serve historical logs, that is a data-provider problem, not a verdict about
+    the token — and it no longer reads as one.
+  - *there is genuinely no route.* Which now means exactly that.
+- **The protocol version is now checked on both networks of the pair.** A token
+  can be registered as a LayerZero V1 application on some of its networks but
+  not others. Asking only the source network meant one direction answered in a
+  second while the opposite direction scanned a million blocks and then gave up
+  with no explanation. Both are asked now, before any scanning — so the answer
+  is the same, and immediate, whichever way round you look at it.
+- **A second way to find the bridge contract.** If the log scan finds nothing,
+  the LayerZero API is asked about the token's recent transfers. When the
+  contract that sent those messages confirms, through `token()`, that it serves
+  this token, it is the adapter the scan missed — and the route is built after
+  all. This recovers tokens whose adapter does not emit standard OFT events.
+
+### Fixed
+
+- **Active tokens on fast networks could not be searched at all.** When a
+  provider refused a block range as too large, the range was halved twice and
+  then given up on. For a heavily traded token on a two-second-block network
+  even the reduced range was too large, so every provider refused in turn and
+  the result looked like "all nodes are down". The range is now halved until it
+  fits, and such tokens are found on the very first node.
+
+---
+
 ## [1.2.1] — 2026-09-09
 
 ### Added
@@ -203,6 +240,7 @@ that approach: the bridge asks the contracts, rather than trusting history.
 Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche, Mantle,
 HyperEVM, Ink, X Layer, Plasma, Robinhood.
 
+[1.3.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.3.0
 [1.2.1]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.1.0

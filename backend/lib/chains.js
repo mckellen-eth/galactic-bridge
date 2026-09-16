@@ -19,6 +19,12 @@ export const CHAINS = {
   xlayer: { key: 'xlayer', name: 'X Layer', chainId: 196, chainIdHex: '0xc4', eid: 30274, explorerUrl: 'https://www.oklink.com/xlayer', nativeSym: 'OKB', rpc: 'https://rpc.xlayer.tech', logsRpc: ['https://xlayer.drpc.org'] },
   plasma: { key: 'plasma', name: 'Plasma', chainId: 9745, chainIdHex: '0x2611', eid: 30383, explorerUrl: 'https://plasmascan.to', nativeSym: 'XPL', rpc: 'https://rpc.plasma.to', rpcs: ['https://rpc.plasma.to', 'https://plasma.drpc.org'] },
   robinhood: { key: 'robinhood', name: 'Robinhood', chainId: 4663, chainIdHex: '0x1237', eid: 30416, explorerUrl: 'https://robinhoodchain.blockscout.com', nativeSym: 'ETH', rpc: 'https://rpc.mainnet.chain.robinhood.com', rpcs: ['https://rpc.mainnet.chain.robinhood.com'] },
+  // Arc (Circle) — мейннет з 16.09.2026. Газ у USDC, але нативна одиниця має
+  // 18 знаків, як у будь-якій EVM-мережі (у ERC-20 USDC їх 6 — це інше).
+  // Підтверджено метаданими LayerZero і доками Arcscan.
+  // Чотири офіційні вузли з доків Circle. rpc.arc-scan.org (від провідника)
+  // останнім: у день запуску він відповідав лише в 6 випадках з 10.
+  arc: { key: 'arc', name: 'Arc', chainId: 5042, chainIdHex: '0x13b2', eid: 30417, explorerUrl: 'https://arcscan.app', nativeSym: 'USDC', rpc: 'https://rpc.mainnet.arc.io', rpcs: ['https://rpc.mainnet.arc.io', 'https://rpc.drpc.mainnet.arc.io', 'https://rpc.quicknode.mainnet.arc.io', 'https://rpc.blockdaemon.mainnet.arc.io', 'https://rpc.arc-scan.org'] },
 };
 
 export const CHAIN_LIST = Object.values(CHAINS);

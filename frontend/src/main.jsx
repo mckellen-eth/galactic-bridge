@@ -25,13 +25,15 @@ const ink         = defineChain(57073, 'Ink',             'ETH',  'https://rpc-g
 const xlayer      = defineChain(196,   'X Layer',         'OKB',  'https://rpc.xlayer.tech',                'OKLink',       'https://www.oklink.com/xlayer');
 const plasma      = defineChain(9745,  'Plasma',          'XPL',  'https://rpc.plasma.to',                  'PlasmaScan',   'https://plasmascan.to');
 const robinhood   = defineChain(4663,  'Robinhood', 'ETH',  'https://rpc.mainnet.chain.robinhood.com','RobinScan',    'https://robinhoodchain.blockscout.com');
+// Arc: газ у USDC, нативна одиниця з 18 знаками (ERC-20 USDC має 6 — не плутати).
+const arc         = defineChain(5042,  'Arc',             'USDC', 'https://rpc.mainnet.arc.io',            'Arcscan',      'https://arcscan.app');
 
 const projectId = import.meta.env.VITE_REOWN_PROJECT_ID;
 // mainnet перший — щоб AppKit не auto-switch на BSC при підключенні гаманця.
 // Гаманець залишається на тому чейні де був; перемикання тільки при натисканні BRIDGE.
 const allNetworks = [
   mainnet, bsc, base, arbitrum, polygon, optimism, avalanche, mantleNetwork,
-  hyperevm, ink, xlayer, plasma, robinhood,
+  hyperevm, ink, xlayer, plasma, robinhood, arc,
 ];
 
 const metadata = {

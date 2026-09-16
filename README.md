@@ -50,8 +50,8 @@ Open `http://localhost:5173`.
 - Finds the bridge contract automatically, including adapters for non-OFT tokens
 - Builds routes even with **zero transaction history**, by querying contracts directly
 - Non-custodial — no accounts, no personal data, you sign everything yourself
-- 13 networks: Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche,
-  Mantle, HyperEVM, Ink, X Layer, Plasma, Robinhood
+- 14 networks: Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche,
+  Mantle, HyperEVM, Ink, X Layer, Plasma, Robinhood, Arc
 
 ## Tech
 

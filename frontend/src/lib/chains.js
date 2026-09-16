@@ -12,6 +12,7 @@ export const CHAINS = {
   xlayer: { key: 'xlayer', name: 'X Layer', chainId: 196, chainIdHex: '0xc4', eid: 30274, explorerUrl: 'https://www.oklink.com/xlayer', nativeSym: 'OKB' },
   plasma: { key: 'plasma', name: 'Plasma', chainId: 9745, chainIdHex: '0x2611', eid: 30383, explorerUrl: 'https://plasmascan.to', nativeSym: 'XPL' },
   robinhood: { key: 'robinhood', name: 'Robinhood', chainId: 4663, chainIdHex: '0x1237', eid: 30416, explorerUrl: 'https://robinhoodchain.blockscout.com', nativeSym: 'ETH' },
+  arc: { key: 'arc', name: 'Arc', chainId: 5042, chainIdHex: '0x13b2', eid: 30417, explorerUrl: 'https://arcscan.app', nativeSym: 'USDC' },
 };
 
 export const CHAIN_LIST = Object.values(CHAINS);

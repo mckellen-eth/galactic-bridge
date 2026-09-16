@@ -46,8 +46,8 @@ Galactic Bridge automates that process.
   transaction in your own wallet. No account, no personal data.
 - **Saved tokens** — store frequently used tokens and reuse them by ticker.
   Stored in your browser only, never on a server.
-- **13 networks:** Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon,
-  Avalanche, Mantle, HyperEVM, Ink, X Layer, Plasma, Robinhood.
+- **14 networks:** Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon,
+  Avalanche, Mantle, HyperEVM, Ink, X Layer, Plasma, Robinhood, Arc.
 
 ---
 
@@ -128,7 +128,7 @@ LOGS_RPC_BSC=https://primary.example/KEY,https://backup.example/KEY
 Free tiers from [NodeReal](https://nodereal.io), [Ankr](https://www.ankr.com/rpc/),
 [dRPC](https://drpc.org) or [Alchemy](https://alchemy.com) are more than enough.
 Chain keys: `eth`, `bsc`, `base`, `arb`, `poly`, `op`, `avax`, `mantle`,
-`hyperevm`, `ink`, `xlayer`, `plasma`, `robinhood`.
+`hyperevm`, `ink`, `xlayer`, `plasma`, `robinhood`, `arc`.
 
 Check every network at once:
 
@@ -248,7 +248,7 @@ that chain, so it needs an adapter — or isn't an OFT at all.
 EIDs: Ethereum `30101`, BNB Chain `30102`, Avalanche `30106`, Polygon `30109`,
 Arbitrum `30110`, Optimism `30111`, Mantle `30181`, Base `30184`,
 X Layer `30274`, Ink `30339`, HyperEVM `30367`, Plasma `30383`,
-Robinhood `30416`.
+Robinhood `30416`, Arc `30417`.
 
 > Use the EID of the chain the address belongs to. The same token can be a plain
 > OFT on one chain and use an adapter on another.

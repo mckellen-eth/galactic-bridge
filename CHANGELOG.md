@@ -9,6 +9,29 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-09-16
+
+### Added
+
+- **Arc is now supported** — Circle's Layer 1 for stablecoin finance, added on
+  the day its mainnet opened. Fourteenth network.
+
+  Arc pays gas in USDC, which raised an obvious worry: the USDC everyone knows
+  has six decimals, and a fee formatted as if it had eighteen would be wrong by
+  a factor of a million. It turned out not to apply — Arc's native unit has
+  eighteen decimals like any other EVM chain, and only the ERC-20 USDC contract
+  uses six. Confirmed against LayerZero's own metadata and Arc's documentation
+  before anything shipped.
+
+  Five nodes are configured for the network, because on launch day the first one
+  answered six requests out of ten.
+
+  One practical note: bridging **to** Arc works today, since the fee is paid on
+  the source network. Bridging **from** Arc needs USDC for gas, and on mainnet
+  that is still handed out through Circle directly.
+
+---
+
 ## [1.3.0] — 2026-09-14
 
 ### Added
@@ -238,8 +261,9 @@ that approach: the bridge asks the contracts, rather than trusting history.
 ## Supported networks
 
 Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche, Mantle,
-HyperEVM, Ink, X Layer, Plasma, Robinhood.
+HyperEVM, Ink, X Layer, Plasma, Robinhood, Arc.
 
+[1.4.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.4.0
 [1.3.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.3.0
 [1.2.1]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.0

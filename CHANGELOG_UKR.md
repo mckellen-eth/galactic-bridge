@@ -9,6 +9,29 @@
 
 ---
 
+## [1.4.0] — 16.09.2026
+
+### Додано
+
+- **Підтримка Arc** — мережі Circle для стейблкоїнів, доданої в день відкриття
+  її мейннету. Чотирнадцята мережа.
+
+  Газ у Arc платиться в USDC, і це одразу викликало побоювання: у звичному всім
+  USDC шість знаків після коми, і комісія, відформатована як для вісімнадцяти,
+  була б помилковою в мільйон разів. Виявилось, що це не наш випадок — нативна
+  одиниця Arc має вісімнадцять знаків, як у будь-якій EVM-мережі, а шість лише
+  в ERC-20 контракті USDC. Перевірено за метаданими LayerZero і доками Arc ще
+  до того, як щось пішло в роботу.
+
+  Для мережі налаштовано пʼять вузлів, бо в день запуску перший відповідав на
+  шість запитів із десяти.
+
+  Практичний нюанс: переказ **на** Arc працює вже зараз, бо комісія платиться на
+  мережі-джерелі. Переказ **з** Arc потребує USDC на газ, а в мейннеті його поки
+  видає безпосередньо Circle.
+
+---
+
 ## [1.3.0] — 14.09.2026
 
 ### Додано
@@ -231,8 +254,9 @@
 ## Підтримувані мережі
 
 Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche, Mantle,
-HyperEVM, Ink, X Layer, Plasma, Robinhood.
+HyperEVM, Ink, X Layer, Plasma, Robinhood, Arc.
 
+[1.4.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.4.0
 [1.3.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.3.0
 [1.2.1]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.0

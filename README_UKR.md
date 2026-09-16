@@ -45,8 +45,8 @@ Galactic Bridge робить це за вас.
   транзакцію ви підписуєте у своєму гаманці. Без реєстрації та особистих даних.
 - **Збережені токени** — часто вживані токени можна зберегти й викликати за
   тікером. Зберігаються лише у вашому браузері, не на сервері.
-- **13 мереж:** Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon,
-  Avalanche, Mantle, HyperEVM, Ink, X Layer, Plasma, Robinhood.
+- **14 мереж:** Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon,
+  Avalanche, Mantle, HyperEVM, Ink, X Layer, Plasma, Robinhood, Arc.
 
 ---
 
@@ -126,7 +126,7 @@ LOGS_RPC_BSC=https://primary.example/КЛЮЧ,https://backup.example/КЛЮЧ
 Безкоштовних тарифів [NodeReal](https://nodereal.io), [Ankr](https://www.ankr.com/rpc/),
 [dRPC](https://drpc.org) чи [Alchemy](https://alchemy.com) вистачає із запасом.
 Ключі мереж: `eth`, `bsc`, `base`, `arb`, `poly`, `op`, `avax`, `mantle`,
-`hyperevm`, `ink`, `xlayer`, `plasma`, `robinhood`.
+`hyperevm`, `ink`, `xlayer`, `plasma`, `robinhood`, `arc`.
 
 Перевірити всі мережі одразу:
 

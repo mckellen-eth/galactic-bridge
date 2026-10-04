@@ -9,6 +9,23 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.0] — 2026-10-04
+
+### Added
+
+- **The bridge can now be used by AI agents, through MCP.** A companion
+  [MCP server](https://github.com/mckellen-eth/galactic-bridge-mcp) makes the
+  route-finder available to AI agents and MCP clients (Claude Desktop, Cursor,
+  …), so an agent can resolve a route and build a cross-chain transaction
+  directly — no web interface. It talks only to this bridge's public API and
+  changes nothing on the server. Three read-only tools; transactions are
+  returned for a human or wallet to sign, never signed by the server. Published
+  to npm as `galactic-bridge-mcp` and to the official MCP registry as
+  `io.github.mckellen-eth/galactic-bridge-mcp`. See the new "Use with AI agents
+  (MCP)" section in the README.
+
+---
+
 ## [1.4.0] — 2026-09-16
 
 ### Added
@@ -29,6 +46,23 @@ and versions follow [Semantic Versioning](https://semver.org/).
   One practical note: bridging **to** Arc works today, since the fee is paid on
   the source network. Bridging **from** Arc needs USDC for gas, and on mainnet
   that is still handed out through Circle directly.
+
+### Fixed
+
+- **Adapter discovery now works on every supported network.** Finding the bridge
+  contract for a token that is not an OFT itself means reading historical event
+  logs, and on Polygon, X Layer and Robinhood no available node would serve them
+  — so that search simply could not run there. All fourteen networks now have a
+  node that does.
+
+  The cause took some finding. The provider's dashboard advertised archive
+  access for these chains, and the search had worked before, yet every request
+  came back rejected. The rejection cited a limit on how many blocks a single
+  query may cover — but it fired on queries far below that limit, which is what
+  made it confusing. Narrowing the range down to a single block, then widening
+  it step by step, put the real threshold somewhere under two hundred blocks:
+  low enough to make scanning impossible, and unrelated to the number quoted in
+  the message.
 
 ---
 
@@ -263,6 +297,7 @@ that approach: the bridge asks the contracts, rather than trusting history.
 Ethereum, BNB Chain, Base, Arbitrum, Optimism, Polygon, Avalanche, Mantle,
 HyperEVM, Ink, X Layer, Plasma, Robinhood, Arc.
 
+[1.5.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.5.0
 [1.4.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.4.0
 [1.3.0]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.3.0
 [1.2.1]: https://github.com/mckellen-eth/galactic-bridge/releases/tag/v1.2.1

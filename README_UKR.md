@@ -307,6 +307,37 @@ frontend/
 
 ---
 
+## Використання з AI-агентами (MCP)
+
+Galactic Bridge доступний також як **MCP-сервер** — тож AI-агенти та
+MCP-клієнти (Claude Desktop, Cursor, …) можуть знаходити маршрути й будувати
+транзакції напряму, без вебінтерфейсу.
+
+- npm: [`galactic-bridge-mcp`](https://www.npmjs.com/package/galactic-bridge-mcp)
+- код: [github.com/mckellen-eth/galactic-bridge-mcp](https://github.com/mckellen-eth/galactic-bridge-mcp)
+- реєстр MCP: `io.github.mckellen-eth/galactic-bridge-mcp`
+
+Додайте в конфіг Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "galactic-bridge": {
+      "command": "npx",
+      "args": ["-y", "galactic-bridge-mcp"]
+    }
+  }
+}
+```
+
+Сервер надає три інструменти лише для читання — `list_supported_networks`,
+`scan_token_networks` і `find_bridge_route` — які звертаються до публічного API
+цього моста. `find_bridge_route` повертає готову до підпису транзакцію; він
+ніколи не тримає ключа й нічого не підписує. Опційний автопідпис вимкнено за
+замовчуванням (див. README репозиторію MCP).
+
+---
+
 ## Як додати мережу
 
 Додайте запис до обʼєкта `CHAINS` **в обох** файлах — `backend/lib/chains.js` і

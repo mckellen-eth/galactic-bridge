@@ -311,6 +311,37 @@ rescans from scratch.
 
 ---
 
+## Use with AI agents (MCP)
+
+Galactic Bridge is also available as an **MCP server**, so AI agents and MCP
+clients (Claude Desktop, Cursor, …) can find bridge routes and build
+transactions directly, without the web interface.
+
+- npm: [`galactic-bridge-mcp`](https://www.npmjs.com/package/galactic-bridge-mcp)
+- source: [github.com/mckellen-eth/galactic-bridge-mcp](https://github.com/mckellen-eth/galactic-bridge-mcp)
+- MCP registry: `io.github.mckellen-eth/galactic-bridge-mcp`
+
+Add it to your Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "galactic-bridge": {
+      "command": "npx",
+      "args": ["-y", "galactic-bridge-mcp"]
+    }
+  }
+}
+```
+
+It exposes three read-only tools — `list_supported_networks`,
+`scan_token_networks` and `find_bridge_route` — which call this bridge's public
+API. `find_bridge_route` returns a ready-to-sign transaction; it never holds a
+key or signs anything. Optional auto-signing is off by default (see the MCP
+repo's README).
+
+---
+
 ## Adding a network
 
 Add an entry to the `CHAINS` object in **both** `backend/lib/chains.js` and

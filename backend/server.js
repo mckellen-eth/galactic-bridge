@@ -119,6 +119,27 @@ app.get('/api/rpc-call', async (req, res) => {
   }
 });
 
+// Невідомі /api-роути — чистий 404 (а не дефолтний Express). Сканери часто
+// шлють POST на /api/session, /api/user/login тощо; без цього вони або падали
+// в дефолтний обробник, або (з кривим JSON-тілом) віддавали 500 — а 500
+// виглядає для сканера як «живий» ендпоінт і засмічує error-rate.
+app.use('/api', (req, res) => res.status(404).json({ ok: false, error: 'Not found' }));
+
+// Обробник помилок. Криве JSON-тіло (express.json кидає) = 400, помилка клієнта,
+// а не 500. Відхилення CORS = 403. Решту несподіваного логуємо й віддаємо 500
+// без деталей назовні.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err?.type === 'entity.parse.failed' || err instanceof SyntaxError) {
+    return res.status(400).json({ ok: false, error: 'Invalid request body' });
+  }
+  if (err?.message === 'Not allowed by CORS') {
+    return res.status(403).json({ ok: false, error: 'Origin not allowed' });
+  }
+  console.log('[server] unhandled error=', err?.message || err);
+  res.status(500).json({ ok: false, error: 'Internal error' });
+});
+
 const PORT = process.env.PORT || 3001;
 const server = app.listen(PORT, '127.0.0.1', () => console.log(`[server] Backend listening on http://127.0.0.1:${PORT}`));
 server.on('error', (err) => console.log('[server] listen error=', err.code, err.message));
